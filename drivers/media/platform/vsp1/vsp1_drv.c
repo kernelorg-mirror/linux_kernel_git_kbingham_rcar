@@ -587,7 +587,7 @@ static const struct vsp1_device_info vsp1_device_infos[] = {
 		.uds_count = 1,
 		.wpf_count = 4,
 		.num_bru_inputs = 4,
-		.uapi = true,
+		.uapi = false,
 	}, {
 		.version = VI6_IP_VERSION_MODEL_VSPS_M2,
 		.features = VSP1_HAS_BRU | VSP1_HAS_LUT | VSP1_HAS_SRU,
