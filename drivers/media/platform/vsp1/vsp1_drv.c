@@ -661,6 +661,10 @@ static int vsp1_probe(struct platform_device *pdev)
 	dev_dbg(&pdev->dev, "IP version 0x%08x\n", version);
 
 	switch (version & VI6_IP_VERSION_MODEL_MASK) {
+	case VI6_IP_VERSION_MODEL_VSPD_GEN2:
+		vsp1->pdata.uapi = false;
+		break;
+
 	case VI6_IP_VERSION_MODEL_VSPD_GEN3:
 		vsp1->pdata.num_bru_inputs = 5;
 		vsp1->pdata.uapi = false;
