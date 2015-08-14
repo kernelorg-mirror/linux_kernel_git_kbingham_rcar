@@ -78,6 +78,51 @@
 				clock-mult = <1>;
 			};
 
+			pll1_div2_clk: pll1_div2_clk {
+				compatible = "fixed-factor-clock";
+				clocks = <&cpg_clocks R8A7795_CLK_PLL1>;
+				#clock-cells = <0>;
+				clock-div = <2>;
+				clock-mult = <1>;
+				clock-output-names = "pll1_div2";
+			};
+
+			s2_clk: s2_clk {
+				compatible = "fixed-factor-clock";
+				clocks = <&cpg_clocks R8A7795_CLK_PLL1>;
+				#clock-cells = <0>;
+				clock-div = <4>;
+				clock-mult = <1>;
+				clock-output-names = "s2";
+			};
+
+			s2d1_clk: s2d1_clk {
+				compatible = "fixed-factor-clock";
+				clocks = <&s2_clk>;
+				#clock-cells = <0>;
+				clock-div = <1>;
+				clock-mult = <1>;
+				clock-output-names = "s2d1";
+			};
+
+			s2d2_clk: s2d2_clk {
+				compatible = "fixed-factor-clock";
+				clocks = <&s2_clk>;
+				#clock-cells = <0>;
+				clock-div = <2>;
+				clock-mult = <1>;
+				clock-output-names = "s2d2";
+			};
+
+			s2d4_clk: s2d4_clk {
+				compatible = "fixed-factor-clock";
+				clocks = <&s2_clk>;
+				#clock-cells = <0>;
+				clock-div = <4>;
+				clock-mult = <1>;
+				clock-output-names = "s2d4";
+			};
+
 			cpg_clocks: cpg_clocks@e6150000 {
 				#address-cells = <2>;
 				#size-cells = <2>;
