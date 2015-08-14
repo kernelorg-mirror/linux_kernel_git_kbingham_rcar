@@ -557,5 +557,118 @@
 			power-domains = <&cpg_clocks>;
 			status = "disabled";
 		};
+
+		vspbc: vsp@fe920000 {
+			compatible = "renesas,vsp2";
+			reg = <0 0xfe920000 0 0x8000>;
+			interrupts = <GIC_SPI 266 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&mstp6_clks R8A7795_CLK_VSPBC>;
+
+			renesas,has-lut;
+			renesas,has-sru;
+			renesas,#rpf = <5>;
+			renesas,#wpf = <1>;
+		};
+
+		vspbd: vsp@fe960000 {
+			compatible = "renesas,vsp2";
+			reg = <0 0xfe960000 0 0x8000>;
+			interrupts = <GIC_SPI 465 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&mstp6_clks R8A7795_CLK_VSPBD>;
+
+			renesas,#rpf = <5>;
+			renesas,#wpf = <1>;
+		};
+
+		vspi0: vsp@fe9a0000 {
+			compatible = "renesas,vsp2";
+			reg = <0 0xfe9a0000 0 0x8000>;
+			interrupts = <GIC_SPI 444 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&mstp6_clks R8A7795_CLK_VSPI0>;
+
+			renesas,has-lut;
+			renesas,has-sru;
+			renesas,#rpf = <1>;
+			renesas,#uds = <3>;
+			renesas,#wpf = <1>;
+		};
+
+		vspi1: vsp@fe9b0000 {
+			compatible = "renesas,vsp2";
+			reg = <0 0xfe9b0000 0 0x8000>;
+			interrupts = <GIC_SPI 445 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&mstp6_clks R8A7795_CLK_VSPI1>;
+
+			renesas,has-lut;
+			renesas,has-sru;
+			renesas,#rpf = <1>;
+			renesas,#uds = <1>;
+			renesas,#wpf = <1>;
+		};
+
+		vspi2: vsp@fe9c0000 {
+			compatible = "renesas,vsp2";
+			reg = <0 0xfe9c0000 0 0x8000>;
+			interrupts = <GIC_SPI 446 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&mstp6_clks R8A7795_CLK_VSPI2>;
+
+			renesas,has-lut;
+			renesas,has-sru;
+			renesas,#rpf = <1>;
+			renesas,#uds = <1>;
+			renesas,#wpf = <1>;
+		};
+
+		vspd0: vsp@fea20000 {
+			compatible = "renesas,vsp2d";
+			reg = <0 0xfea20000 0 0x8000>;
+			interrupts = <GIC_SPI 466 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&mstp6_clks R8A7795_CLK_VSPD0>;
+
+			renesas,has-bru;
+			renesas,has-lif;
+			renesas,has-lut;
+			renesas,#rpf = <5>;
+			renesas,#wpf = <2>;
+		};
+
+		vspd1: vsp@fea28000 {
+			compatible = "renesas,vsp2d";
+			reg = <0 0xfea28000 0 0x8000>;
+			interrupts = <GIC_SPI 467 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&mstp6_clks R8A7795_CLK_VSPD1>;
+
+			renesas,has-bru;
+			renesas,has-lif;
+			renesas,has-lut;
+			renesas,#rpf = <5>;
+			renesas,#wpf = <2>;
+		};
+
+		vspd2: vsp@fea30000 {
+			compatible = "renesas,vsp2d";
+			reg = <0 0xfea30000 0 0x8000>;
+			interrupts = <GIC_SPI 468 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&mstp6_clks R8A7795_CLK_VSPD2>;
+
+			renesas,has-bru;
+			renesas,has-lif;
+			renesas,has-lut;
+			renesas,#rpf = <5>;
+			renesas,#wpf = <2>;
+		};
+
+		vspd3: vsp@fea38000 {
+			compatible = "renesas,vsp2d";
+			reg = <0 0xfea38000 0 0x8000>;
+			interrupts = <GIC_SPI 469 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&mstp6_clks R8A7795_CLK_VSPD3>;
+
+			renesas,has-bru;
+			renesas,has-lif;
+			renesas,has-lut;
+			renesas,#rpf = <5>;
+			renesas,#wpf = <2>;
+		};
 	};
 };
