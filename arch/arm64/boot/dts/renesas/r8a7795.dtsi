@@ -136,6 +136,22 @@
 				clock-output-names = "main", "pll0", "pll1","pll2",
 						     "pll3", "pll4";
 
+				hdmi_clk: hdmi_clk {
+					compatible = "renesas,r8a7795-div6-clock", "renesas,cpg-div6-clock";
+					reg = <0 0xe6150250 0 4>;
+					clocks = <&pll1_div2_clk>;
+					#clock-cells = <0>;
+					clock-output-names = "hdmi";
+				};
+
+				lvds_clk: lvds_clk {
+					compatible = "renesas,r8a7795-div6-clock", "renesas,cpg-div6-clock";
+					reg = <0 0xe615007c 0 4>;
+					clocks = <&pll1_div2_clk>;
+					#clock-cells = <0>;
+					clock-output-names = "lvds";
+				};
+
 				mstp3_clks: mstp3_clks@e615013c {
 					compatible = "renesas,r8a7795-mstp-clocks",
 					             "renesas,cpg-mstp-clocks";
