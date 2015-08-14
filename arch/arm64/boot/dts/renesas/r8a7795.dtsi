@@ -413,6 +413,41 @@
 					clock-indices = <R8A7795_CLK_SCIF2>;
 				};
 
+				mstp6_clks: mstp6@e61501c0 {
+					compatible = "renesas,r8a7795-mstp-clocks",
+						     "renesas,cpg-mstp-clocks";
+					reg = <0 0xe6150148 0 4>, <0 0xe61501c0 0 4>;
+					clocks =  <
+						&s2d1_clk &s2d1_clk &s2d1_clk &s2d1_clk
+						&s2d1_clk &s2d1_clk &s2d1_clk &s2d1_clk
+						&s2d1_clk
+					>;
+					#clock-cells = <1>;
+					clock-indices = <
+						R8A7795_CLK_VSPD3 R8A7795_CLK_VSPD2
+						R8A7795_CLK_VSPD1 R8A7795_CLK_VSPD0
+						R8A7795_CLK_VSPBC R8A7795_CLK_VSPBD
+						R8A7795_CLK_VSPI2 R8A7795_CLK_VSPI1
+						R8A7795_CLK_VSPI0
+					>;
+				};
+
+				mstp7_clks: mstp7@e615014c {
+					compatible = "renesas,r8a7795-mstp-clocks",
+						     "renesas,cpg-mstp-clocks";
+					reg = <0 0xe615014c 0 4>, <0 0xe61501c4 0 4>;
+					clocks =  <&s2d1_clk>, <&s2d1_clk>, <&s2d1_clk>,
+						  <&s2d1_clk>, <&s2d1_clk>, <&s2d1_clk>,
+						  <&lvds_clk>, <&hdmi_clk>, <&hdmi_clk>;
+					#clock-cells = <1>;
+					clock-indices = <
+						R8A7795_CLK_DU3 R8A7795_CLK_DU2
+						R8A7795_CLK_DU1 R8A7795_CLK_DU0
+						R8A7795_CLK_LVDS R8A7795_CLK_HDMI1
+						R8A7795_CLK_HDMI0
+					>;
+				};
+
 				mstp9_clks: mstp9_clks@e6150994 {
 					compatible = "renesas,r8a7795-mstp-clocks",
 						     "renesas,cpg-mstp-clocks";
