@@ -351,6 +351,22 @@
 				clock-mult = <1>;
 			};
 
+			hdmi_clk: hdmi_clk {
+				compatible = "renesas,r8a7795-div6-clock", "renesas,cpg-div6-clock";
+				reg = <0 0xe6150250 0 4>;
+				clocks = <&pll1_div2_clk>;
+				#clock-cells = <0>;
+				clock-output-names = "hdmi";
+			};
+
+			lvds_clk: lvds_clk {
+				compatible = "renesas,r8a7795-div6-clock", "renesas,cpg-div6-clock";
+				reg = <0 0xe615007c 0 4>;
+				clocks = <&pll1_div2_clk>;
+				#clock-cells = <0>;
+				clock-output-names = "lvds";
+			};
+
 			cpg_clocks: cpg_clocks@e6150000 {
 				#address-cells = <2>;
 				#size-cells = <2>;
