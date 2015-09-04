@@ -205,7 +205,14 @@ static unsigned vce_v3_0_get_harvest_config(struct amdgpu_device *adev)
 	u32 tmp;
 	unsigned ret;
 
-	if (adev->flags & AMDGPU_IS_APU)
+	/* Fiji is single pipe */
+	if (adev->asic_type == CHIP_FIJI) {
+		ret = AMDGPU_VCE_HARVEST_VCE1;
+		return ret;
+	}
+
+	/* Tonga and CZ are dual or single pipe */
+	if (adev->flags & AMD_IS_APU)
 		tmp = (RREG32_SMC(ixVCE_HARVEST_FUSE_MACRO__ADDRESS) &
 		       VCE_HARVEST_FUSE_MACRO__MASK) >>
 			VCE_HARVEST_FUSE_MACRO__SHIFT;
@@ -601,6 +608,7 @@ static const struct amdgpu_ring_funcs vce_v3_0_ring_funcs = {
 	.test_ring = amdgpu_vce_ring_test_ring,
 	.test_ib = amdgpu_vce_ring_test_ib,
 	.is_lockup = amdgpu_ring_test_lockup,
+	.insert_nop = amdgpu_ring_insert_nop,
 };
 
 static void vce_v3_0_set_ring_funcs(struct amdgpu_device *adev)
