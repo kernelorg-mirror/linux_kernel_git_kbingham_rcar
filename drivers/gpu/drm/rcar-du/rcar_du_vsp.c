@@ -197,7 +197,7 @@ static void rcar_du_vsp_plane_atomic_update(struct drm_plane *plane,
 {
 	struct rcar_du_vsp_plane *rplane = to_rcar_vsp_plane(plane);
 
-	if (plane->state->crtc)
+	if (plane->state->crtc && plane->state->crtc->state->enable)
 		rcar_du_vsp_plane_setup(rplane);
 	else
 		vsp1_du_setup_rpf(rplane->vsp->vsp, rplane->index, 0, 0, 0,
