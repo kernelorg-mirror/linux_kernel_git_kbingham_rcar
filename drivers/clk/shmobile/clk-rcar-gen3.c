@@ -28,15 +28,6 @@
 #define RCAR_GEN3_CLK_PLL4	5
 #define RCAR_GEN3_CLK_NR	6
 
-static const char * const rcar_gen3_clk_names[RCAR_GEN3_CLK_NR] = {
-	[RCAR_GEN3_CLK_MAIN] = "main",
-	[RCAR_GEN3_CLK_PLL0] = "pll0",
-	[RCAR_GEN3_CLK_PLL1] = "pll1",
-	[RCAR_GEN3_CLK_PLL2] = "pll2",
-	[RCAR_GEN3_CLK_PLL3] = "pll3",
-	[RCAR_GEN3_CLK_PLL4] = "pll4",
-};
-
 struct rcar_gen3_cpg {
 	struct clk_onecell_data data;
 	void __iomem *reg;
@@ -116,7 +107,7 @@ rcar_gen3_cpg_register_clk(struct device_node *np, struct rcar_gen3_cpg *cpg,
 			   const struct cpg_pll_config *config,
 			   unsigned int gen3_clk)
 {
-	const char *parent_name = rcar_gen3_clk_names[RCAR_GEN3_CLK_MAIN];
+	const char *parent_name = of_clk_get_name(np, RCAR_GEN3_CLK_MAIN);
 	unsigned int mult = 1;
 	unsigned int div = 1;
 	u32 value;
@@ -157,7 +148,7 @@ rcar_gen3_cpg_register_clk(struct device_node *np, struct rcar_gen3_cpg *cpg,
 		return ERR_PTR(-EINVAL);
 	}
 
-	return clk_register_fixed_factor(NULL, rcar_gen3_clk_names[gen3_clk],
+	return clk_register_fixed_factor(NULL, of_clk_get_name(np, gen3_clk),
 					 parent_name, 0, mult, div);
 }
 
