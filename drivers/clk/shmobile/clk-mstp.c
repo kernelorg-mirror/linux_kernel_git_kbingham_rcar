@@ -216,8 +216,7 @@ static void __init cpg_mstp_clocks_init(struct device_node *np)
 
 		if (of_property_read_string_index(np, "clock-output-names",
 						  i, &name) < 0)
-			allocated_name = name = kasprintf(GFP_KERNEL, "%s.%u",
-							   np->name, clkidx);
+			allocated_name = name = of_clk_get_name(np, clkidx);
 
 		clks[clkidx] = cpg_mstp_clock_register(name, parent_name,
 						       clkidx, group);

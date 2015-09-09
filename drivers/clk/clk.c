@@ -3045,31 +3045,25 @@ int of_clk_get_parent_count(struct device_node *np)
 }
 EXPORT_SYMBOL_GPL(of_clk_get_parent_count);
 
-const char *of_clk_get_parent_name(struct device_node *np, int index)
+const char *of_clk_get_name(struct device_node *np, int index)
 {
-	struct of_phandle_args clkspec;
 	struct property *prop;
 	const char *clk_name;
 	const __be32 *vp;
 	u32 pv;
-	int rc;
 	int count;
+	bool has_indices = false;
 
 	if (index < 0)
 		return NULL;
 
-	rc = of_parse_phandle_with_args(np, "clocks", "#clock-cells", index,
-					&clkspec);
-	if (rc)
-		return NULL;
-
-	index = clkspec.args_count ? clkspec.args[0] : 0;
 	count = 0;
 
 	/* if there is an indices property, use it to transfer the index
 	 * specified into an array offset for the clock-output-names property.
 	 */
-	of_property_for_each_u32(clkspec.np, "clock-indices", prop, vp, pv) {
+	of_property_for_each_u32(np, "clock-indices", prop, vp, pv) {
+		has_indices = true;
 		if (index == pv) {
 			index = count;
 			break;
@@ -3077,12 +3071,34 @@ const char *of_clk_get_parent_name(struct device_node *np, int index)
 		count++;
 	}
 
-	if (of_property_read_string_index(clkspec.np, "clock-output-names",
-					  index,
-					  &clk_name) < 0)
-		clk_name = clkspec.np->name;
+	if (of_property_read_string_index(np, "clock-output-names", index,
+					  &clk_name) < 0) {
+		if (has_indices)
+			return kasprintf(GFP_KERNEL, "%s.%u", np->name, index);
+		else
+			return kstrdup_const(np->name, GFP_KERNEL);
+	}
 
-	of_node_put(clkspec.np);
+	return kstrdup_const(clk_name, GFP_KERNEL);
+}
+EXPORT_SYMBOL_GPL(of_clk_get_name);
+
+const char *of_clk_get_parent_name(struct device_node *np, int index)
+{
+	struct of_phandle_args clkspec;
+	const char *clk_name = NULL;
+	int rc;
+
+	if (index < 0)
+		return NULL;
+
+	rc = of_parse_phandle_with_args(np, "clocks", "#clock-cells", index,
+					&clkspec);
+	if (!rc) {
+		clk_name = of_clk_get_name(clkspec.np, clkspec.args_count ?
+					   clkspec.args[0] : 0);
+		of_node_put(clkspec.np);
+	}
 	return clk_name;
 }
 EXPORT_SYMBOL_GPL(of_clk_get_parent_name);
