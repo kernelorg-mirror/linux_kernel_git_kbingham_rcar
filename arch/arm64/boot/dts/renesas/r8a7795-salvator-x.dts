@@ -240,6 +240,8 @@
 	pinctrl-names = "default";
 	renesas,no-ether-link;
 	phy-handle = <&phy0>;
+	/* Placeholder, to be overridden by the boot loader. */
+	mac-address = [00 00 00 00 00 00];
 	status = "okay";
 
 	phy0: ethernet-phy@0 {
