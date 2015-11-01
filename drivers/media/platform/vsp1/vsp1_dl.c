@@ -128,10 +128,8 @@ void vsp1_dl_begin(struct vsp1_dl *dl)
 	list->reg_count = 0;
 }
 
-void vsp1_dl_add(struct vsp1_entity *e, u32 reg, u32 data)
+void vsp1_dl_add(struct vsp1_dl *dl, u32 reg, u32 data)
 {
-	struct vsp1_pipeline *pipe = to_vsp1_pipeline(&e->subdev.entity);
-	struct vsp1_dl *dl = pipe->dl;
 	struct vsp1_dl_list *list = dl->lists.write;
 
 	list->body[list->reg_count].addr = reg;
