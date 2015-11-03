@@ -15,9 +15,12 @@
 #include <linux/dma-mapping.h>
 #include <linux/gfp.h>
 
+#include <media/v4l2-device.h>
+
 #include "vsp1.h"
 #include "vsp1_dl.h"
 #include "vsp1_pipe.h"
+#include "vsp1_video.h"
 
 /*
  * Global resources
