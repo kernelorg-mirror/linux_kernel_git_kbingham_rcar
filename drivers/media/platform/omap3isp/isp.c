@@ -851,6 +851,10 @@ static int isp_pipeline_link_notify(struct media_link *link, u32 flags,
 	return 0;
 }
 
+static const struct media_device_ops isp_media_ops {
+	.link_notify = isp_pipeline_link_notify,
+};
+
 /* -----------------------------------------------------------------------------
  * Pipeline stream management
  */
@@ -1873,7 +1877,7 @@ static int isp_register_entities(struct isp_device *isp)
 	strlcpy(isp->media_dev.model, "TI OMAP3 ISP",
 		sizeof(isp->media_dev.model));
 	isp->media_dev.hw_revision = isp->revision;
-	isp->media_dev.link_notify = isp_pipeline_link_notify;
+	isp->media_dev.ops = &isp_media_ops;
 	ret = media_device_register(&isp->media_dev);
 	if (ret < 0) {
 		dev_err(isp->dev, "%s: Media device registration failed (%d)\n",
