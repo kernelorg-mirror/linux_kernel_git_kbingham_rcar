@@ -210,6 +210,12 @@ static void vsp1_destroy_entities(struct vsp1_device *vsp1)
 		vsp1_drm_cleanup(vsp1);
 }
 
+static const struct media_device_ops vsp1_media_device_ops = {
+	.req_alloc = vsp1_request_alloc,
+	.req_free = vsp1_request_free,
+	.req_queue = vsp1_request_queue,
+};
+
 static int vsp1_create_entities(struct vsp1_device *vsp1)
 {
 	struct media_device *mdev = &vsp1->media_dev;
@@ -219,6 +225,7 @@ static int vsp1_create_entities(struct vsp1_device *vsp1)
 	int ret;
 
 	mdev->dev = vsp1->dev;
+	mdev->ops = &vsp1_media_device_ops;
 	strlcpy(mdev->model, "VSP1", sizeof(mdev->model));
 	snprintf(mdev->bus_info, sizeof(mdev->bus_info), "platform:%s",
 		 dev_name(mdev->dev));
@@ -238,6 +245,7 @@ static int vsp1_create_entities(struct vsp1_device *vsp1)
 		vsp1->media_ops.link_validate = v4l2_subdev_link_validate;
 
 	vdev->mdev = mdev;
+
 	ret = v4l2_device_register(vsp1->dev, vdev);
 	if (ret < 0) {
 		dev_err(vsp1->dev, "V4L2 device registration failed (%d)\n",

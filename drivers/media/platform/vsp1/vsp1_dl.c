@@ -15,9 +15,12 @@
 #include <linux/dma-mapping.h>
 #include <linux/gfp.h>
 
+#include <media/v4l2-device.h>
+
 #include "vsp1.h"
 #include "vsp1_dl.h"
 #include "vsp1_pipe.h"
+#include "vsp1_video.h"
 
 /*
  * Global resources
@@ -379,4 +382,111 @@ void vsp1_dlm_destroy(struct vsp1_dl_manager *dlm)
 		list_del(&dl->list);
 		vsp1_dl_list_free(dl);
 	}
+}
+
+/* -----------------------------------------------------------------------------
+ * Requests Management
+ */
+
+struct vsp1_request {
+	struct media_device_request req;
+};
+
+static inline struct vsp1_request *
+to_vsp1_request(struct media_device_request *req)
+{
+	return container_of(req, struct vsp1_request, req);
+}
+
+struct media_device_request *vsp1_request_alloc(struct media_device *mdev)
+{
+	struct vsp1_request *req;
+
+	req = kzalloc(sizeof(*req), GFP_KERNEL);
+	if (!req)
+		return NULL;
+
+	return &req->req;
+}
+
+void vsp1_request_free(struct media_device *mdev,
+		       struct media_device_request *mreq)
+{
+	struct vsp1_request *req = to_vsp1_request(mreq);
+
+	kfree(req);
+}
+
+int vsp1_request_queue(struct media_device *mdev,
+		       struct media_device_request *mreq)
+{
+	struct vsp1_device *vsp1 =
+		container_of(mdev, struct vsp1_device, media_dev);
+	struct vsp1_request *req = to_vsp1_request(mreq);
+	struct vsp1_video *output = NULL;
+	struct vsp1_pipeline *pipe;
+	struct vsp1_video *video;
+	bool has_request;
+	unsigned int i;
+
+	/* 1. Find the capture video node for which a buffer corresponding to
+	 * the request has been prepared. This will be our main entry point to
+	 * the pipeline.
+	 *
+	 * TODO: Fix race condition. There would be no need to lock the list
+	 * walk as we don't add or remove video nodes at runtime. However, the
+	 * media device is registered before the video nodes, so userspace could
+	 * call us at probe time before all video nodes are registered.
+	 */
+	for (i = 0; i < ARRAY_SIZE(vsp1->wpf); ++i) {
+		if (!vsp1->wpf[i])
+			continue;
+
+		video = vsp1->wpf[i]->video;
+
+		if (mutex_lock_interruptible(&video->lock))
+			return -ERESTARTSYS;
+		has_request = vb2_is_streaming(&video->queue) &&
+			      vb2_queue_has_request(&video->queue, mreq->id);
+		mutex_unlock(&video->lock);
+
+		if (has_request) {
+			/* A pipeline has a single output. */
+			if (output)
+				return -EINVAL;
+			output = video;
+		}
+	}
+
+	if (!output)
+		return -EINVAL;
+
+	/* 2. Validate the pipeline. Verify streaming state, buffers and
+	 * formats.
+	 */
+	pipe = to_vsp1_pipeline(&output->video.entity);
+	if (!pipe)
+		return -EINVAL;
+
+	for (i = 0; i < ARRAY_SIZE(pipe->inputs); ++i) {
+		if (!pipe->inputs[i])
+			continue;
+
+		video = pipe->inputs[i]->video;
+
+		if (mutex_lock_interruptible(&video->lock))
+			return -ERESTARTSYS;
+		has_request = vb2_is_streaming(&video->queue) &&
+			      vb2_queue_has_request(&video->queue, mreq->id);
+		mutex_unlock(&video->lock);
+
+		if (!has_request)
+			return -EINVAL;
+	}
+
+	/* 3. Allocate and fill the display list */
+
+	/* 4. Queue the request */
+
+	return 0;
 }
