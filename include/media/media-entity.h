@@ -133,6 +133,18 @@ struct media_entity_graph {
 	int top;
 };
 
+/**
+ * struct media_entity_request_data - Per-entity request data
+ * @entity: Entity this data belongs to
+ * @release: Release operation to free the data
+ * @list: List entry in the media_device_request data list
+ */
+struct media_entity_request_data {
+	struct media_entity *entity;
+	void (*release)(struct media_entity_request_data *data);
+	struct list_head list;
+};
+
 int media_entity_init(struct media_entity *entity, u16 num_pads,
 		struct media_pad *pads, u16 extra_links);
 void media_entity_cleanup(struct media_entity *entity);
