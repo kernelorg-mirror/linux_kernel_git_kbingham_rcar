@@ -808,6 +808,17 @@ static inline void v4l2_subdev_free_pad_config(struct v4l2_subdev_pad_config *cf
 {
 	kfree(cfg);
 }
+
+struct v4l2_subdev_request_data {
+	struct media_entity_request_data data;
+	struct v4l2_subdev_pad_config *pad;
+};
+
+static inline struct v4l2_subdev_request_data *
+to_v4l2_subdev_request_data(struct media_entity_request_data *data)
+{
+	return container_of(data, struct v4l2_subdev_request_data, data);
+}
 #endif /* CONFIG_MEDIA_CONTROLLER */
 
 void v4l2_subdev_init(struct v4l2_subdev *sd,
