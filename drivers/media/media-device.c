@@ -86,9 +86,15 @@ EXPORT_SYMBOL_GPL(media_device_request_get);
 
 static void media_device_request_release(struct kref *kref)
 {
+	struct media_entity_request_data *data, *next;
 	struct media_device_request *req =
 		container_of(kref, struct media_device_request, kref);
 	struct media_device *mdev = req->mdev;
+
+	list_for_each_entry_safe(data, next, &req->data, list) {
+		list_del(&data->list);
+		data->release(data);
+	}
 
 	mdev->ops->req_free(mdev, req);
 }
@@ -98,6 +104,70 @@ void media_device_request_put(struct media_device_request *req)
 	kref_put(&req->kref, media_device_request_release);
 }
 EXPORT_SYMBOL_GPL(media_device_request_put);
+
+/**
+ * media_device_request_get_entity_data - Get per-entity data
+ * @req: The request
+ * @entity: The entity
+ *
+ * Search and return per-entity data (as a struct media_entity_request_data
+ * instance) associated with the given entity for the request, as previously
+ * registered by a call to media_device_request_set_entity_data().
+ *
+ * The caller is expected to hold a reference to the request. Per-entity data is
+ * not reference counted, the returned pointer will be valid only as long as the
+ * reference to the request is held.
+ *
+ * Return the data instance pointer or NULL if no data could be found.
+ */
+struct media_entity_request_data *
+media_device_request_get_entity_data(struct media_device_request *req,
+				     struct media_entity *entity)
+{
+	struct media_entity_request_data *data;
+	unsigned long flags;
+
+	spin_lock_irqsave(&req->mdev->req_lock, flags);
+
+	list_for_each_entry(data, &req->data, list) {
+		if (data->entity == entity)
+			goto done;
+	}
+
+	data = NULL;
+
+done:
+	spin_unlock_irqrestore(&req->mdev->req_lock, flags);
+	return data;
+}
+EXPORT_SYMBOL_GPL(media_device_request_get_entity_data);
+
+/**
+ * media_device_request_set_entity_data - Set per-entity data
+ * @req: The request
+ * @entity: The entity
+ * @data: The data
+ *
+ * Record the given per-entity data as being associated with the entity for the
+ * request.
+ *
+ * Only one per-entity data instance can be associated with a request. The
+ * caller is responsible for enforcing this requirement.
+ *
+ * Ownership of the per-entity data is transferred to the request when calling
+ * this function. The data will be freed automatically when the last reference
+ * to the request is released.
+ */
+void media_device_request_set_entity_data(struct media_device_request *req,
+	struct media_entity *entity, struct media_entity_request_data *data)
+{
+	unsigned long flags;
+
+	spin_lock_irqsave(&req->mdev->req_lock, flags);
+	list_add_tail(&data->list, &req->data);
+	spin_unlock_irqrestore(&req->mdev->req_lock, flags);
+}
+EXPORT_SYMBOL_GPL(media_device_request_set_entity_data);
 
 static int media_device_request_alloc(struct media_device *mdev,
 				      struct media_device_fh *fh,
@@ -112,6 +182,7 @@ static int media_device_request_alloc(struct media_device *mdev,
 
 	req->mdev = mdev;
 	kref_init(&req->kref);
+	INIT_LIST_HEAD(&req->data);
 
 	spin_lock_irqsave(&mdev->req_lock, flags);
 	req->id = ++mdev->req_id;
