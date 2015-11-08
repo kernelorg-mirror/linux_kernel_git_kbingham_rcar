@@ -85,5 +85,6 @@
   &sub-media-ioc-device-info;
   &sub-media-ioc-enum-entities;
   &sub-media-ioc-enum-links;
+  &sub-media-ioc-request-cmd;
   &sub-media-ioc-setup-link;
 </appendix>
