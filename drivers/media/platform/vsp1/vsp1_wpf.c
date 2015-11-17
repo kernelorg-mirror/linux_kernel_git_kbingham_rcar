@@ -42,14 +42,13 @@ static int wpf_s_stream(struct v4l2_subdev *subdev, int enable)
 	struct vsp1_pipeline *pipe = to_vsp1_pipeline(&subdev->entity);
 	struct vsp1_rwpf *wpf = to_rwpf(subdev);
 	struct vsp1_device *vsp1 = wpf->entity.vsp1;
-	const struct v4l2_mbus_framefmt *source_format;
-	const struct v4l2_mbus_framefmt *sink_format;
-	const struct v4l2_rect *crop;
 	unsigned int i;
 	u32 srcrpf = 0;
-	u32 outfmt = 0;
 
 	if (!enable) {
+		/* Write to registers directly when stopping the stream as there
+		 * will be no pipeline run to apply the display list.
+		 */
 		vsp1_write(vsp1, VI6_WPF_IRQ_ENB(wpf->entity.index), 0);
 		vsp1_write(vsp1, wpf->entity.index * VI6_WPF_OFFSET +
 			   VI6_WPF_SRCRPF, 0);
@@ -76,6 +75,61 @@ static int wpf_s_stream(struct v4l2_subdev *subdev, int enable)
 		srcrpf |= VI6_WPF_SRCRPF_VIRACT_MST;
 
 	vsp1_wpf_write(wpf, VI6_WPF_SRCRPF, srcrpf);
+
+	return 0;
+}
+
+/* -----------------------------------------------------------------------------
+ * V4L2 Subdevice Operations
+ */
+
+static struct v4l2_subdev_video_ops wpf_video_ops = {
+	.s_stream = wpf_s_stream,
+};
+
+static struct v4l2_subdev_pad_ops wpf_pad_ops = {
+	.init_cfg = vsp1_entity_init_cfg,
+	.enum_mbus_code = vsp1_rwpf_enum_mbus_code,
+	.enum_frame_size = vsp1_rwpf_enum_frame_size,
+	.get_fmt = vsp1_rwpf_get_format,
+	.set_fmt = vsp1_rwpf_set_format,
+	.get_selection = vsp1_rwpf_get_selection,
+	.set_selection = vsp1_rwpf_set_selection,
+};
+
+static struct v4l2_subdev_ops wpf_ops = {
+	.video	= &wpf_video_ops,
+	.pad    = &wpf_pad_ops,
+};
+
+/* -----------------------------------------------------------------------------
+ * VSP1 Entity Operations
+ */
+
+static void vsp1_wpf_destroy(struct vsp1_entity *entity)
+{
+	struct vsp1_rwpf *wpf = entity_to_rwpf(entity);
+
+	vsp1_dlm_destroy(wpf->dlm);
+}
+
+static void wpf_set_memory(struct vsp1_entity *entity)
+{
+	struct vsp1_rwpf *wpf = entity_to_rwpf(entity);
+
+	vsp1_wpf_write(wpf, VI6_WPF_DSTM_ADDR_Y, wpf->mem.addr[0]);
+	vsp1_wpf_write(wpf, VI6_WPF_DSTM_ADDR_C0, wpf->mem.addr[1]);
+	vsp1_wpf_write(wpf, VI6_WPF_DSTM_ADDR_C1, wpf->mem.addr[2]);
+}
+
+static void wpf_configure(struct vsp1_entity *entity)
+{
+	struct vsp1_pipeline *pipe = to_vsp1_pipeline(&entity->subdev.entity);
+	struct vsp1_rwpf *wpf = to_rwpf(&entity->subdev);
+	const struct v4l2_mbus_framefmt *source_format;
+	const struct v4l2_mbus_framefmt *sink_format;
+	const struct v4l2_rect *crop;
+	u32 outfmt = 0;
 
 	/* Destination stride. */
 	if (!pipe->lif) {
@@ -130,61 +184,12 @@ static int wpf_s_stream(struct v4l2_subdev *subdev, int enable)
 		       VI6_DPR_WPF_FPORCH_FP_WPFN);
 
 	vsp1_mod_write(&wpf->entity, VI6_WPF_WRBCK_CTRL, 0);
-
-	/* Enable interrupts */
-	vsp1_write(vsp1, VI6_WPF_IRQ_STA(wpf->entity.index), 0);
-	vsp1_write(vsp1, VI6_WPF_IRQ_ENB(wpf->entity.index),
-		   VI6_WFP_IRQ_ENB_FREE);
-
-	return 0;
-}
-
-/* -----------------------------------------------------------------------------
- * V4L2 Subdevice Operations
- */
-
-static struct v4l2_subdev_video_ops wpf_video_ops = {
-	.s_stream = wpf_s_stream,
-};
-
-static struct v4l2_subdev_pad_ops wpf_pad_ops = {
-	.init_cfg = vsp1_entity_init_cfg,
-	.enum_mbus_code = vsp1_rwpf_enum_mbus_code,
-	.enum_frame_size = vsp1_rwpf_enum_frame_size,
-	.get_fmt = vsp1_rwpf_get_format,
-	.set_fmt = vsp1_rwpf_set_format,
-	.get_selection = vsp1_rwpf_get_selection,
-	.set_selection = vsp1_rwpf_set_selection,
-};
-
-static struct v4l2_subdev_ops wpf_ops = {
-	.video	= &wpf_video_ops,
-	.pad    = &wpf_pad_ops,
-};
-
-/* -----------------------------------------------------------------------------
- * VSP1 Entity Operations
- */
-
-static void vsp1_wpf_destroy(struct vsp1_entity *entity)
-{
-	struct vsp1_rwpf *wpf = entity_to_rwpf(entity);
-
-	vsp1_dlm_destroy(wpf->dlm);
-}
-
-static void wpf_set_memory(struct vsp1_entity *entity)
-{
-	struct vsp1_rwpf *wpf = entity_to_rwpf(entity);
-
-	vsp1_wpf_write(wpf, VI6_WPF_DSTM_ADDR_Y, wpf->mem.addr[0]);
-	vsp1_wpf_write(wpf, VI6_WPF_DSTM_ADDR_C0, wpf->mem.addr[1]);
-	vsp1_wpf_write(wpf, VI6_WPF_DSTM_ADDR_C1, wpf->mem.addr[2]);
 }
 
 static const struct vsp1_entity_operations wpf_entity_ops = {
 	.destroy = vsp1_wpf_destroy,
 	.set_memory = wpf_set_memory,
+	.configure = wpf_configure,
 };
 
 /* -----------------------------------------------------------------------------
