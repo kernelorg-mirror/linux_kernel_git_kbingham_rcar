@@ -303,15 +303,19 @@ static struct v4l2_subdev_ops bru_ops = {
  * VSP1 Entity Operations
  */
 
-static void bru_configure(struct vsp1_entity *entity)
+static void bru_configure(struct vsp1_entity *entity,
+			  struct media_device_request *req)
 {
 	struct vsp1_pipeline *pipe = to_vsp1_pipeline(&entity->subdev.entity);
 	struct vsp1_bru *bru = to_bru(&entity->subdev);
-	struct v4l2_mbus_framefmt *format;
+	const struct v4l2_mbus_framefmt *format;
+	struct v4l2_subdev_pad_config *config;
 	unsigned int flags;
 	unsigned int i;
 
-	format = vsp1_entity_get_pad_format(&bru->entity, bru->entity.config,
+	config = vsp1_entity_get_req_pad_config(entity, req);
+
+	format = vsp1_entity_get_pad_format(&bru->entity, config,
 					    bru->entity.source_pad);
 
 	/* The hardware is extremely flexible but we have no userspace API to

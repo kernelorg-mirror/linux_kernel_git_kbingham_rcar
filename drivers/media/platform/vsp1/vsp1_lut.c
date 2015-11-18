@@ -219,7 +219,8 @@ static struct v4l2_subdev_ops lut_ops = {
  * VSP1 Entity Operations
  */
 
-static void lut_configure(struct vsp1_entity *entity)
+static void lut_configure(struct vsp1_entity *entity,
+			  struct media_device_request *req)
 {
 	struct vsp1_lut *lut = to_lut(&entity->subdev);
 
