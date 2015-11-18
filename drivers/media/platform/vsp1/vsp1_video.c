@@ -627,7 +627,7 @@ static int vsp1_video_setup_pipeline(struct vsp1_pipeline *pipe)
 		vsp1_entity_route_setup(entity);
 
 		if (entity->ops->configure)
-			entity->ops->configure(entity);
+			entity->ops->configure(entity, NULL);
 	}
 
 	/* We know that the WPF s_stream operation never fails. */

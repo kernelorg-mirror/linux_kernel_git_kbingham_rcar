@@ -112,14 +112,18 @@ static void wpf_set_memory(struct vsp1_entity *entity)
 	vsp1_wpf_write(wpf, VI6_WPF_DSTM_ADDR_C1, wpf->mem.addr[2]);
 }
 
-static void wpf_configure(struct vsp1_entity *entity)
+static void wpf_configure(struct vsp1_entity *entity,
+			  struct media_device_request *req)
 {
 	struct vsp1_pipeline *pipe = to_vsp1_pipeline(&entity->subdev.entity);
 	struct vsp1_rwpf *wpf = to_rwpf(&entity->subdev);
+	struct v4l2_subdev_pad_config *config;
 	const struct v4l2_mbus_framefmt *source_format;
 	const struct v4l2_mbus_framefmt *sink_format;
 	const struct v4l2_rect *crop;
 	u32 outfmt = 0;
+
+	config = vsp1_entity_get_req_pad_config(entity, req);
 
 	/* Destination stride. */
 	if (!pipe->lif) {
@@ -132,7 +136,7 @@ static void wpf_configure(struct vsp1_entity *entity)
 				       format->plane_fmt[1].bytesperline);
 	}
 
-	crop = vsp1_rwpf_get_crop(wpf, wpf->entity.config);
+	crop = vsp1_rwpf_get_crop(wpf, config);
 
 	vsp1_wpf_write(wpf, VI6_WPF_HSZCLIP, VI6_WPF_SZCLIP_EN |
 		       (crop->left << VI6_WPF_SZCLIP_OFST_SHIFT) |
@@ -142,11 +146,9 @@ static void wpf_configure(struct vsp1_entity *entity)
 		       (crop->height << VI6_WPF_SZCLIP_SIZE_SHIFT));
 
 	/* Format */
-	sink_format = vsp1_entity_get_pad_format(&wpf->entity,
-						 wpf->entity.config,
+	sink_format = vsp1_entity_get_pad_format(&wpf->entity, config,
 						 RWPF_PAD_SINK);
-	source_format = vsp1_entity_get_pad_format(&wpf->entity,
-						   wpf->entity.config,
+	source_format = vsp1_entity_get_pad_format(&wpf->entity, config,
 						   RWPF_PAD_SOURCE);
 
 	if (!pipe->lif) {
