@@ -125,17 +125,7 @@ static void wpf_configure(struct vsp1_entity *entity,
 
 	config = vsp1_entity_get_req_pad_config(entity, req);
 
-	/* Destination stride. */
-	if (!pipe->lif) {
-		struct v4l2_pix_format_mplane *format = &wpf->format;
-
-		vsp1_wpf_write(wpf, VI6_WPF_DSTM_STRIDE_Y,
-			       format->plane_fmt[0].bytesperline);
-		if (format->num_planes > 1)
-			vsp1_wpf_write(wpf, VI6_WPF_DSTM_STRIDE_C,
-				       format->plane_fmt[1].bytesperline);
-	}
-
+	/* Cropping */
 	crop = vsp1_rwpf_get_crop(wpf, config);
 
 	vsp1_wpf_write(wpf, VI6_WPF_HSZCLIP, VI6_WPF_SZCLIP_EN |
@@ -152,7 +142,11 @@ static void wpf_configure(struct vsp1_entity *entity,
 						   RWPF_PAD_SOURCE);
 
 	if (!pipe->lif) {
-		const struct vsp1_format_info *fmtinfo = wpf->fmtinfo;
+		const struct v4l2_pix_format_mplane *format;
+		const struct vsp1_format_info *fmtinfo;
+
+		format = vsp1_rwpf_get_pixformat(wpf, req);
+		fmtinfo = vsp1_get_format_info(format->pixelformat);
 
 		outfmt = fmtinfo->hwfmt << VI6_WPF_OUTFMT_WRFMT_SHIFT;
 
@@ -162,6 +156,13 @@ static void wpf_configure(struct vsp1_entity *entity,
 			outfmt |= VI6_WPF_OUTFMT_SPYCS;
 		if (fmtinfo->swap_uv)
 			outfmt |= VI6_WPF_OUTFMT_SPUVS;
+
+		/* Destination stride and byte swapping. */
+		vsp1_wpf_write(wpf, VI6_WPF_DSTM_STRIDE_Y,
+			       format->plane_fmt[0].bytesperline);
+		if (format->num_planes > 1)
+			vsp1_wpf_write(wpf, VI6_WPF_DSTM_STRIDE_C,
+				       format->plane_fmt[1].bytesperline);
 
 		vsp1_wpf_write(wpf, VI6_WPF_DSWAP, fmtinfo->swap);
 	}
