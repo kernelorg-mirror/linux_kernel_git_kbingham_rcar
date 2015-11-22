@@ -67,6 +67,7 @@ vsp1_video_remote_subdev(struct media_pad *local, u32 *pad)
 
 static int vsp1_video_verify_format(struct vsp1_video *video)
 {
+	const struct vsp1_format_info *info;
 	struct v4l2_subdev_format fmt;
 	struct v4l2_subdev *subdev;
 	int ret;
@@ -80,7 +81,9 @@ static int vsp1_video_verify_format(struct vsp1_video *video)
 	if (ret < 0)
 		return ret == -ENOIOCTLCMD ? -EINVAL : ret;
 
-	if (video->rwpf->fmtinfo->mbus != fmt.format.code ||
+	info = vsp1_get_format_info(video->rwpf->format.pixelformat);
+
+	if (info->mbus != fmt.format.code ||
 	    video->rwpf->format.height != fmt.format.height ||
 	    video->rwpf->format.width != fmt.format.width)
 		return -EINVAL;
@@ -89,8 +92,7 @@ static int vsp1_video_verify_format(struct vsp1_video *video)
 }
 
 static int __vsp1_video_try_format(struct vsp1_video *video,
-				   struct v4l2_pix_format_mplane *pix,
-				   const struct vsp1_format_info **fmtinfo)
+				   struct v4l2_pix_format_mplane *pix)
 {
 	static const u32 xrgb_formats[][2] = {
 		{ V4L2_PIX_FMT_RGB444, V4L2_PIX_FMT_XRGB444 },
@@ -163,9 +165,6 @@ static int __vsp1_video_try_format(struct vsp1_video *video,
 
 	pix->num_planes = info->planes;
 
-	if (fmtinfo)
-		*fmtinfo = info;
-
 	return 0;
 }
 
@@ -177,7 +176,7 @@ vsp1_video_format_adjust(struct vsp1_video *video,
 	unsigned int i;
 
 	*adjust = *format;
-	__vsp1_video_try_format(video, adjust, NULL);
+	__vsp1_video_try_format(video, adjust);
 
 	if (format->width != adjust->width ||
 	    format->height != adjust->height ||
@@ -616,10 +615,12 @@ static int vsp1_video_setup_pipeline(struct vsp1_pipeline *pipe)
 		if (pipe->uds_input->type == VSP1_ENTITY_BRU) {
 			uds->scale_alpha = false;
 		} else {
+			const struct vsp1_format_info *info;
 			struct vsp1_rwpf *rpf =
 				to_rwpf(&pipe->uds_input->subdev);
 
-			uds->scale_alpha = rpf->fmtinfo->alpha;
+			info = vsp1_get_format_info(rpf->format.pixelformat);
+			uds->scale_alpha = info->alpha;
 		}
 	}
 
@@ -758,7 +759,7 @@ vsp1_video_try_format(struct file *file, void *fh, struct v4l2_format *format)
 	if (format->type != video->queue.type)
 		return -EINVAL;
 
-	return __vsp1_video_try_format(video, &format->fmt.pix_mp, NULL);
+	return __vsp1_video_try_format(video, &format->fmt.pix_mp);
 }
 
 static int
@@ -766,13 +767,12 @@ vsp1_video_set_format(struct file *file, void *fh, struct v4l2_format *format)
 {
 	struct v4l2_fh *vfh = file->private_data;
 	struct vsp1_video *video = to_vsp1_video(vfh->vdev);
-	const struct vsp1_format_info *info;
 	int ret;
 
 	if (format->type != video->queue.type)
 		return -EINVAL;
 
-	ret = __vsp1_video_try_format(video, &format->fmt.pix_mp, &info);
+	ret = __vsp1_video_try_format(video, &format->fmt.pix_mp);
 	if (ret < 0)
 		return ret;
 
@@ -784,7 +784,6 @@ vsp1_video_set_format(struct file *file, void *fh, struct v4l2_format *format)
 	}
 
 	video->rwpf->format = format->fmt.pix_mp;
-	video->rwpf->fmtinfo = info;
 
 done:
 	mutex_unlock(&video->lock);
@@ -969,7 +968,7 @@ struct vsp1_video *vsp1_video_create(struct vsp1_device *vsp1,
 	rwpf->format.pixelformat = VSP1_VIDEO_DEF_FORMAT;
 	rwpf->format.width = VSP1_VIDEO_DEF_WIDTH;
 	rwpf->format.height = VSP1_VIDEO_DEF_HEIGHT;
-	__vsp1_video_try_format(video, &rwpf->format, &rwpf->fmtinfo);
+	__vsp1_video_try_format(video, &rwpf->format);
 
 	/* ... and the video node... */
 	video->video.v4l2_dev = &video->vsp1->v4l2_dev;
