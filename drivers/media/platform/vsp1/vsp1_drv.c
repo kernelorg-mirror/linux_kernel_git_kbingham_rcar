@@ -24,6 +24,7 @@
 #include "vsp1.h"
 #include "vsp1_brx.h"
 #include "vsp1_clu.h"
+#include "vsp1_debugfs.h"
 #include "vsp1_dl.h"
 #include "vsp1_drm.h"
 #include "vsp1_hgo.h"
@@ -890,6 +891,9 @@ static int vsp1_probe(struct platform_device *pdev)
 
 	dev_dbg(&pdev->dev, "IP version 0x%08x\n", vsp1->version);
 
+	/* Register Debug File System before entities */
+	vsp1_debugfs_init(vsp1);
+
 	/* Instantiate entities. */
 	ret = vsp1_create_entities(vsp1);
 	if (ret < 0) {
@@ -911,6 +915,7 @@ static int vsp1_remove(struct platform_device *pdev)
 	struct vsp1_device *vsp1 = platform_get_drvdata(pdev);
 
 	vsp1_destroy_entities(vsp1);
+	vsp1_debugfs_remove(vsp1);
 	rcar_fcp_put(vsp1->fcp);
 
 	pm_runtime_disable(&pdev->dev);
