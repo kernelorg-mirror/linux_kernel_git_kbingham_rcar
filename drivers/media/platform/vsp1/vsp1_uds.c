@@ -18,6 +18,7 @@
 
 #include "vsp1.h"
 #include "vsp1_dl.h"
+#include "vsp1_pipe.h"
 #include "vsp1_uds.h"
 
 #define UDS_MIN_SIZE				4U
@@ -265,9 +266,18 @@ static void uds_configure(struct vsp1_entity *entity,
 	struct vsp1_uds *uds = to_uds(&entity->subdev);
 	const struct v4l2_mbus_framefmt *output;
 	const struct v4l2_mbus_framefmt *input;
+	const struct v4l2_rect *partition = &pipe->partition;
 	unsigned int hscale;
 	unsigned int vscale;
 	bool multitap;
+
+	/* Handle partition algorithm clipping */
+	if (pipe->partitions > 1) {
+		vsp1_uds_write(uds, dl, VI6_UDS_HSZCLIP,
+			       VI6_UDS_HSZCLIP_HCEN |
+			       (0 << VI6_UDS_CLIP_SIZE_HSIZE_SHIFT) |
+			       (partition->width << VI6_UDS_CLIP_SIZE_VSIZE_SHIFT));
+	}
 
 	if (!full)
 		return;
