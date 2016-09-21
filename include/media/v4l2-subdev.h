@@ -308,6 +308,7 @@ struct v4l2_mbus_frame_desc_entry_csi2 {
  * struct v4l2_mbus_frame_desc_entry - media bus frame description structure
  *
  * @flags: bitmask flags: %V4L2_MBUS_FRAME_DESC_FL_LEN_MAX and
+ * @stream:	stream in routing configuration
  *			  %V4L2_MBUS_FRAME_DESC_FL_BLOB.
  * @pixelcode: media bus pixel code, valid if FRAME_DESC_FL_BLOB is not set
  * @length: number of octets per frame, valid if V4L2_MBUS_FRAME_DESC_FL_BLOB
@@ -317,6 +318,7 @@ struct v4l2_mbus_frame_desc_entry_csi2 {
  */
 struct v4l2_mbus_frame_desc_entry {
 	u16 flags;
+	u32 stream;
 	u32 pixelcode;
 	u32 length;
 	union {
