@@ -83,9 +83,10 @@ static int vsp1_rwpf_set_format(struct v4l2_subdev *subdev,
 
 	format = vsp1_entity_get_pad_format(&rwpf->entity, config, fmt->pad);
 
-	if (fmt->pad == RWPF_PAD_SOURCE) {
+	if (fmt->pad == RWPF_PAD_SOURCE ||
+	    fmt->pad == RWPF_PAD_SOURCE_WB) {
 		/* The RWPF performs format conversion but can't scale, only the
-		 * format code can be changed on the source pad.
+		 * format code can be changed on the source pads.
 		 */
 		format->code = fmt->format.code;
 		fmt->format = *format;
@@ -113,10 +114,18 @@ static int vsp1_rwpf_set_format(struct v4l2_subdev *subdev,
 		crop->height = fmt->format.height;
 	}
 
-	/* Propagate the format to the source pad. */
+	/* Propagate the format to the source pads. */
 	format = vsp1_entity_get_pad_format(&rwpf->entity, config,
 					    RWPF_PAD_SOURCE);
 	*format = fmt->format;
+
+	if (rwpf->has_writeback) {
+		/* Propogate the format to the Writeback pad */
+		format = vsp1_entity_get_pad_format(&rwpf->entity, config,
+				RWPF_PAD_SOURCE_WB);
+
+		*format = fmt->format;
+	}
 
 	if (rwpf->flip.rotate) {
 		format->width = fmt->format.height;

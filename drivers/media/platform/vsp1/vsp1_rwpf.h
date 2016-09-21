@@ -24,6 +24,7 @@
 
 #define RWPF_PAD_SINK				0
 #define RWPF_PAD_SOURCE				1
+#define RWPF_PAD_SOURCE_WB			2
 
 struct v4l2_ctrl;
 struct vsp1_dl_manager;
@@ -53,6 +54,7 @@ struct vsp1_rwpf {
 
 	u32 mult_alpha;
 	u32 outfmt;
+	bool has_writeback;
 
 	struct {
 		spinlock_t lock;

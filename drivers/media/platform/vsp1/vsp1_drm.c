@@ -27,6 +27,7 @@
 #include "vsp1_lif.h"
 #include "vsp1_pipe.h"
 #include "vsp1_rwpf.h"
+#include "vsp1_video.h"
 
 
 /* -----------------------------------------------------------------------------
@@ -479,6 +480,13 @@ void vsp1_du_atomic_flush(struct device *dev)
 				__func__, rpf->entity.index);
 	}
 
+	/*
+	 * If we have a writeback node attached, we use this opportunity to
+	 * update the video buffers.
+	 */
+	if (pipe->output->video && pipe->output->video->frame_end)
+		pipe->output->video->frame_end(pipe);
+
 	/* Configure all entities in the pipeline. */
 	list_for_each_entry(entity, &pipe->entities, list_pipe) {
 		/* Disconnect unused RPFs from the pipeline. */
@@ -590,6 +598,17 @@ int vsp1_drm_create_links(struct vsp1_device *vsp1)
 	if (ret < 0)
 		return ret;
 
+	if (!(vsp1->info->features & VSP1_HAS_WPF_WRITEBACK))
+		return 0;
+
+	/* Connect the video device to the WPF for Writeback support */
+	ret = media_create_pad_link(&vsp1->wpf[0]->entity.subdev.entity,
+				    RWPF_PAD_SOURCE_WB,
+				    &vsp1->wpf[0]->video->video.entity,
+				    0, flags);
+	if (ret < 0)
+		return ret;
+
 	return 0;
 }
 
@@ -620,6 +639,7 @@ int vsp1_drm_init(struct vsp1_device *vsp1)
 	pipe->bru = &vsp1->bru->entity;
 	pipe->lif = &vsp1->lif->entity;
 	pipe->output = vsp1->wpf[0];
+	pipe->output->pipe = pipe;
 
 	return 0;
 }
