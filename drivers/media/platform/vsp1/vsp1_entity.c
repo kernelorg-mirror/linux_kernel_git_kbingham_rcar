@@ -472,11 +472,13 @@ static const struct vsp1_route vsp1_routes[] = {
 };
 
 int vsp1_entity_init(struct vsp1_device *vsp1, struct vsp1_entity *entity,
-		     const char *name, unsigned int num_pads,
+		     const char *name, unsigned int num_sink_pads,
+		     unsigned int num_source_pads,
 		     const struct v4l2_subdev_ops *ops, u32 function)
 {
 	struct v4l2_subdev *subdev;
 	unsigned int i;
+	unsigned int num_pads = num_sink_pads + num_source_pads;
 	int ret;
 
 	for (i = 0; i < ARRAY_SIZE(vsp1_routes); ++i) {
@@ -501,17 +503,16 @@ int vsp1_entity_init(struct vsp1_device *vsp1, struct vsp1_entity *entity,
 	if (entity->pads == NULL)
 		return -ENOMEM;
 
-	for (i = 0; i < num_pads - 1; ++i)
+	for (i = 0; i < num_sink_pads; ++i)
 		entity->pads[i].flags = MEDIA_PAD_FL_SINK;
 
-	entity->sources = devm_kcalloc(vsp1->dev, max(num_pads - 1, 1U),
+	for (; i < num_pads; ++i)
+		entity->pads[i].flags = MEDIA_PAD_FL_SOURCE;
+
+	entity->sources = devm_kcalloc(vsp1->dev, num_source_pads,
 				       sizeof(*entity->sources), GFP_KERNEL);
 	if (entity->sources == NULL)
 		return -ENOMEM;
-
-	/* Single-pad entities only have a sink. */
-	entity->pads[num_pads - 1].flags = num_pads > 1 ? MEDIA_PAD_FL_SOURCE
-					 : MEDIA_PAD_FL_SINK;
 
 	/* Initialize the media entity. */
 	ret = media_entity_pads_init(&entity->subdev.entity, num_pads,

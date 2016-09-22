@@ -589,7 +589,7 @@ int vsp1_histogram_init(struct vsp1_device *vsp1, struct vsp1_histogram *histo,
 	histo->entity.ops = ops;
 	histo->entity.type = type;
 
-	ret = vsp1_entity_init(vsp1, &histo->entity, name, 2, &histo_ops,
+	ret = vsp1_entity_init(vsp1, &histo->entity, name, 1, 1, &histo_ops,
 			       MEDIA_ENT_F_PROC_VIDEO_STATISTICS);
 	if (ret < 0)
 		return ret;

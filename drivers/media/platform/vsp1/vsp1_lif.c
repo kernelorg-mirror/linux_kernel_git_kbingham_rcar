@@ -180,7 +180,7 @@ struct vsp1_lif *vsp1_lif_create(struct vsp1_device *vsp1)
 	 * requires a function to be set. Use PROC_VIDEO_PIXEL_FORMATTER just to
 	 * avoid triggering a WARN_ON(), the value won't be seen anywhere.
 	 */
-	ret = vsp1_entity_init(vsp1, &lif->entity, "lif", 2, &lif_ops,
+	ret = vsp1_entity_init(vsp1, &lif->entity, "lif", 1, 1, &lif_ops,
 			       MEDIA_ENT_F_PROC_VIDEO_PIXEL_FORMATTER);
 	if (ret < 0)
 		return ERR_PTR(ret);
