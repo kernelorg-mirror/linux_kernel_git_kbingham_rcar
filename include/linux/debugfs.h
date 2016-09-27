@@ -29,6 +29,7 @@ struct debugfs_blob_wrapper {
 struct debugfs_reg32 {
 	char *name;
 	unsigned long offset;
+	void (*decode_reg)(struct seq_file *s, u32 value);
 };
 
 struct debugfs_regset32 {

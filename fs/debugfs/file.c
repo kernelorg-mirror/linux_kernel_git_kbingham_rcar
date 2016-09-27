@@ -1107,10 +1107,17 @@ void debugfs_print_regs32(struct seq_file *s, const struct debugfs_reg32 *regs,
 	int i;
 
 	for (i = 0; i < nregs; i++, regs++) {
+		u32 value = readl(base + regs->offset);
 		if (prefix)
 			seq_printf(s, "%s", prefix);
-		seq_printf(s, "%s = 0x%08x\n", regs->name,
-			   readl(base + regs->offset));
+
+		seq_printf(s, "%s = 0x%08x", regs->name, value);
+
+		if (regs->decode_reg)
+			regs->decode_reg(s, value);
+
+		seq_puts(s, "\n");
+
 		if (seq_has_overflowed(s))
 			break;
 	}
