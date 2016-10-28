@@ -208,7 +208,8 @@ struct rvin_dev {
  *
  * @mdev:		media device which represents the group
  *
- * @lock:		protects the vin and csi members
+ * @lock:		protects the mask, vin and csi members
+ * @mask:		Mask of VIN instances found in DT
  * @vin:		VIN instances which are part of the group
  * @csi:		CSI-2 entities that are part of the group
  */
@@ -218,6 +219,7 @@ struct rvin_group {
 	struct media_device mdev;
 
 	struct mutex lock;
+	unsigned long mask;
 	struct rvin_dev *vin[RCAR_VIN_NUM];
 	struct rvin_graph_entity csi[RVIN_CSI_MAX];
 };
