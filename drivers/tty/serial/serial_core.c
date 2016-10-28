@@ -2761,6 +2761,8 @@ int uart_add_one_port(struct uart_driver *drv, struct uart_port *uport)
 
 	uart_configure_port(drv, state, uport);
 
+	port->console = uart_console(uport);
+
 	num_groups = 2;
 	if (uport->attr_group)
 		num_groups++;
