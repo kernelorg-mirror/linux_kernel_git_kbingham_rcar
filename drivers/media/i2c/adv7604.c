@@ -3059,7 +3059,7 @@ static int adv76xx_parse_dt(struct adv76xx_state *state)
 	struct device_node *np;
 	unsigned int flags;
 	int ret;
-	u32 v;
+	u32 v = -1;
 
 	np = state->i2c_clients[ADV76XX_PAGE_IO]->dev.of_node;
 
@@ -3080,6 +3080,22 @@ static int adv76xx_parse_dt(struct adv76xx_state *state)
 		state->pdata.default_input = -1;
 
 	of_node_put(endpoint);
+
+	if (of_property_read_u32(np, "default-input", &v)) {
+		/* not specified ... can we choose automatically? */
+		switch (state->info->type) {
+		case ADV7611:
+			v = 0;
+			break;
+		case ADV7612:
+			if (state->info->max_port == ADV76XX_PAD_HDMI_PORT_A)
+				v = 0;
+			/* else is unhobbled, leave unspecified */
+		default:
+			break;
+		}
+	}
+	state->pdata.default_input = v;
 
 	flags = bus_cfg.bus.parallel.flags;
 
