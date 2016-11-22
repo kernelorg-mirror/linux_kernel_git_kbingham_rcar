@@ -25,6 +25,7 @@
 
 #include "vsp1.h"
 #include "vsp1_brx.h"
+#include "vsp1_debugfs.h"
 #include "vsp1_dl.h"
 #include "vsp1_entity.h"
 #include "vsp1_hgo.h"
@@ -342,6 +343,7 @@ vsp1_video_complete_buffer(struct vsp1_video *video)
 		vb2_set_plane_payload(&done->buf.vb2_buf, i,
 				      vb2_plane_size(&done->buf.vb2_buf, i));
 	vb2_buffer_done(&done->buf.vb2_buf, VB2_BUF_STATE_DONE);
+	video->statistics.buffer_done++;
 
 	return next;
 }
@@ -768,6 +770,8 @@ static void vsp1_video_buffer_queue(struct vb2_buffer *vb)
 	list_add_tail(&buf->queue, &video->irqqueue);
 	spin_unlock_irqrestore(&video->irqlock, flags);
 
+	video->statistics.buffer_queued++;
+
 	if (!empty)
 		return;
 
@@ -839,8 +843,10 @@ static void vsp1_video_release_buffers(struct vsp1_video *video)
 
 	/* Remove all buffers from the IRQ queue. */
 	spin_lock_irqsave(&video->irqlock, flags);
-	list_for_each_entry(buffer, &video->irqqueue, queue)
+	list_for_each_entry(buffer, &video->irqqueue, queue) {
 		vb2_buffer_done(&buffer->buf.vb2_buf, VB2_BUF_STATE_ERROR);
+		video->statistics.buffer_failed++;
+	}
 	INIT_LIST_HEAD(&video->irqqueue);
 	spin_unlock_irqrestore(&video->irqlock, flags);
 }
@@ -1310,6 +1316,9 @@ struct vsp1_video *vsp1_video_create(struct vsp1_device *vsp1,
 		goto error;
 	}
 
+	/* Create a Video debugfs node */
+	vsp1_debugfs_create_video_stats(video, video->video.name);
+
 	return video;
 
 error:
@@ -1319,6 +1328,9 @@ error:
 
 void vsp1_video_cleanup(struct vsp1_video *video)
 {
+	/* Remove any debugfs entries */
+	vsp1_debugfs_cleanup_video_stats(video);
+
 	if (video_is_registered(&video->video))
 		video_unregister_device(&video->video);
 

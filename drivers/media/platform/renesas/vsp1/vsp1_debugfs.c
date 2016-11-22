@@ -17,6 +17,7 @@
 #include "vsp1.h"
 #include "vsp1_rwpf.h"
 #include "vsp1_pipe.h"
+#include "vsp1_video.h"
 
 #include "vsp1_debugfs.h"
 
@@ -521,4 +522,42 @@ void vsp1_debugfs_remove(struct vsp1_device *vsp1)
 {
 	debugfs_remove_recursive(vsp1->dbgroot);
 	vsp1_device_put(vsp1);
+}
+
+
+/*
+ * VSP1 Video Debugfs nodes
+ */
+static int vsp1_video_stats(struct seq_file *s, void *p)
+{
+	struct vsp1_video *video = s->private;
+
+	seq_puts(s, "Reading from a struct vsp1_video node\n");
+
+	seq_printf(s,	" buffer_queued %d\n"
+			" buffer_done %d\n"
+			" buffer_failed %d\n",
+			video->statistics.buffer_queued,
+			video->statistics.buffer_done,
+			video->statistics.buffer_failed);
+
+	return 0;
+}
+
+DEBUGFS_RO_ATTR(vsp1_video_stats);
+
+void vsp1_debugfs_create_video_stats(struct vsp1_video *video, const char *name)
+{
+	struct vsp1_device *vsp1 = video->vsp1;
+
+	/* dentry pointer discarded */
+	video->debugfs_file = debugfs_create_file(name,
+					0444, vsp1->dbgroot, video,
+					&vsp1_video_stats_fops);
+}
+
+void vsp1_debugfs_cleanup_video_stats(struct vsp1_video *video)
+{
+	debugfs_remove(video->debugfs_file);
+	video->debugfs_file = NULL;
 }

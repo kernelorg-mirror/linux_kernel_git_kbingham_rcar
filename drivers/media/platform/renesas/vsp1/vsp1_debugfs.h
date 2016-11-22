@@ -32,6 +32,10 @@
 int vsp1_debugfs_init(struct vsp1_device *vsp1);
 void vsp1_debugfs_remove(struct vsp1_device *vsp1);
 char *vsp1_reg_to_name(u32 offset);
+
+void vsp1_debugfs_create_video_stats(struct vsp1_video *video,
+		const char *name);
+void vsp1_debugfs_cleanup_video_stats(struct vsp1_video *video);
 #else
 static inline int vsp1_debugfs_init(struct vsp1_device *vsp1)
 {
@@ -44,6 +48,10 @@ static inline char *vsp1_reg_to_name(u32 offset)
 {
 	return "<>";
 }
+
+static inline vsp1_debugfs_create_video_stats(struct vsp1_video *video,
+		const char *name) { };
+static inline vsp1_debugfs_cleanup_video_stats(struct vsp1_video *video) { };
 #endif /* CONFIG_DEBUG_FS */
 
 #endif /* __VSP1_DEBUGFS_H__ */
