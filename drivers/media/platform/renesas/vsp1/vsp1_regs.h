@@ -18,14 +18,30 @@
 #define VI6_CMD_UPDHDR			BIT(4)
 #define VI6_CMD_STRCMD			BIT(0)
 
+#define VI6_CLK_CTRL0			0x0010
+#define VI6_CLK_CTRL1			0x0014
+
 #define VI6_CLK_DCSWT			0x0018
 #define VI6_CLK_DCSWT_CSTPW_MASK	(0xff << 8)
 #define VI6_CLK_DCSWT_CSTPW_SHIFT	8
 #define VI6_CLK_DCSWT_CSTRW_MASK	(0xff << 0)
 #define VI6_CLK_DCSWT_CSTRW_SHIFT	0
 
+#define VI6_CLK_DCSM0			0x001c
+#define VI6_CLK_DCSM1			0x0020
+
 #define VI6_SRESET			0x0028
 #define VI6_SRESET_SRTS(n)		BIT(n)
+
+#define VI6_MRESET_ENB0			0x002c
+#define VI6_MRESET_ENB0_RESET		0x0000001f
+#define VI6_MRESET_ENB0_RESET_BUS	0x30000f1f
+
+#define VI6_MRESET_ENB1			0x0030
+#define VI6_MRESET_ENB1_RESET		0xff00ffff
+
+#define VI6_MRESET			0x0034
+#define VI6_MRESET_MRST			BIT(0)
 
 #define VI6_STATUS			0x0038
 #define VI6_STATUS_FLD_STD(n)		BIT((n) + 28)
