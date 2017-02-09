@@ -328,24 +328,68 @@ static void sru_partition(struct vsp1_entity *entity,
 			  struct vsp1_pipeline *pipe,
 			  struct vsp1_partition *partition,
 			  unsigned int partition_idx,
-			  struct vsp1_partition_window *window)
+			  struct vsp1_partition_window *window,
+			  bool forwards)
 {
 	struct vsp1_sru *sru = to_sru(&entity->subdev);
 	struct v4l2_mbus_framefmt *input;
 	struct v4l2_mbus_framefmt *output;
+	bool scale_up;
 
 	input = vsp1_entity_get_pad_format(&sru->entity, sru->entity.config,
 					   SRU_PAD_SINK);
 	output = vsp1_entity_get_pad_format(&sru->entity, sru->entity.config,
 					    SRU_PAD_SOURCE);
 
-	/* Adapt if SRUx2 is enabled. */
-	if (input->width != output->width) {
-		window->width /= 2;
-		window->left /= 2;
+	scale_up = (input->width != output->width);
+
+	if (forwards) {
+		/* Propagate the clipping offsets forwards. */
+		if (window->left != 0)
+			window->offset++;
+
+		if (scale_up)
+			window->offset *= 2;
+
+		return;
 	}
 
-	partition->sru = *window;
+	/*
+	 * The SRU has a 3-tap pre-filter that generates the same number of
+	 * pixels as it consumes. Edge output pixels are computed using edge
+	 * pixel duplication at the input. This results in one incorrect output
+	 * pixel on each side of the partition window after the pre-filter. To
+	 * compensate for this, require one additional input pixel on each side
+	 * before the pre-filter (thus before scaling).
+	 *
+	 * Additionally, the 2x up-scaler uses a bilinear post-filter and
+	 * generates odd pixels from their two neighbours. The rightmost output
+	 * pixel is thus computed using edge pixel duplication on the right side
+	 * of the input (the leftmost output pixel is an even pixel, aligned
+	 * with the leftmost input pixel and thus depends only on the
+	 * corresponding pixel after the pre-filter). To compensate for this,
+	 * require one additional input pixel on the right side when up-scaling.
+	 */
+
+	if (scale_up) {
+		/* Clipping offsets are not back-propagated. */
+		window->width /= 2;
+		window->left /= 2;
+
+		/* SRUx2 requires an extra pixel at the right edge. */
+		if (!vsp1_pipeline_partition_last(pipe, partition_idx))
+			window->width++;
+	}
+
+	/* Expand to the left edge. */
+	if (window->left != 0) {
+		window->left--;
+		window->width++;
+	}
+
+	/* Expand to the right edge. */
+	if (!vsp1_pipeline_partition_last(pipe, partition_idx))
+		window->width++;
 }
 
 static const struct vsp1_entity_operations sru_entity_ops = {

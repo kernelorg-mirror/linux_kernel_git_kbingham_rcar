@@ -212,6 +212,7 @@ static void vsp1_video_calculate_partition(struct vsp1_pipeline *pipe,
 	if (!vsp1_pipeline_partitioned(pipe)) {
 		window.left = 0;
 		window.width = format->width;
+		window.offset = 0;
 
 		vsp1_pipeline_propagate_partition(pipe, partition, index,
 						  &window);
@@ -221,6 +222,7 @@ static void vsp1_video_calculate_partition(struct vsp1_pipeline *pipe,
 	/* Initialise the partition with sane starting conditions. */
 	window.left = index * div_size;
 	window.width = div_size;
+	window.offset = 0;
 
 	modulus = format->width % div_size;
 

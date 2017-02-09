@@ -435,12 +435,54 @@ bool vsp1_pipeline_partitioned(struct vsp1_pipeline *pipe)
 }
 
 /*
+ * Identify the last (right-most) partition.
+ *
+ * The indexes commence at 0, but the pipe->partitions is a counter, thus we
+ * account for this accordingly.
+ */
+bool vsp1_pipeline_partition_last(struct vsp1_pipeline *pipe,
+				  unsigned int index)
+{
+	return pipe->partitions - 1 == index;
+}
+
+/*
  * Propagate the partition calculations through the pipeline.
  *
- * Work backwards through the pipe, allowing each entity to update the partition
- * parameters based on its configuration, and the entity connected to its
- * source. Each entity must produce the partition required for the previous
- * entity in the pipeline.
+ * Entities involved in the partition algorithm may have filters requiring
+ * extra pixels to be supplied on the left and right edges. The extra pixels
+ * produced allow the filter to correctly process all pixels which must be
+ * output with valid data while pixels which are based on copied data can be
+ * clipped by other entities in the pipeline.
+ *
+ * We determine the partition window size based on the image output size. Then
+ * perform two passes through the entities in the pipeline, first backwards
+ * then forwards calling the .partition operation on each entity if it is
+ * provided.
+ *
+ * The .partition function allows an entity to transform a partition window
+ * based on its current configuration in the direction the algorithm is
+ * currently processing.
+ *
+ * In the first pass, the entities shall process in the backwards direction
+ * and can expand the window to request a larger number of input pixels for
+ * processing from the previous entity.
+ *
+ * On the second pass, the entities shall process in the forwards direction
+ * and shall consider any cropping requirements as a result of previous
+ * entities producing an enlarged window, reporting this as an offset for the
+ * left edge. An entity can either consume the offset by cropping its input or
+ * propagate it forwards.
+ *
+ * Clipping only occurs on the left edge of a window as the right edge is
+ * handled by entities processing only as far as they need to satisfy the
+ * output width requested by the next entity in the pipeline. As the final
+ * entity, the WPF will only write out valid pixels through a combination of
+ * clipping the offset from the left edge, and writing only a valid width to
+ * meet the right edge of the image.
+ *
+ * Any information an entity stores in the vsp1_partition is private to that
+ * entity, and shall not be accessed outside of that entity.
  */
 void vsp1_pipeline_propagate_partition(struct vsp1_pipeline *pipe,
 				       struct vsp1_partition *partition,
@@ -449,10 +491,18 @@ void vsp1_pipeline_propagate_partition(struct vsp1_pipeline *pipe,
 {
 	struct vsp1_entity *entity;
 
+	/* Move backwards through the pipeline to propagate any expansion. */
 	list_for_each_entry_reverse(entity, &pipe->entities, list_pipe) {
 		if (entity->ops->partition)
 			entity->ops->partition(entity, pipe, partition, index,
-					       window);
+					       window, false);
+	}
+
+	/* Move forwards through the pipeline and propagate any updates. */
+	list_for_each_entry(entity, &pipe->entities, list_pipe) {
+		if (entity->ops->partition)
+			entity->ops->partition(entity, pipe, partition, index,
+					       window, true);
 	}
 }
 

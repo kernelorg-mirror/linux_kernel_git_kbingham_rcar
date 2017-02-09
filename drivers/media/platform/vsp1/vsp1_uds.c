@@ -275,6 +275,7 @@ static void uds_configure_stream(struct vsp1_entity *entity,
 	const struct v4l2_mbus_framefmt *input;
 	unsigned int hscale;
 	unsigned int vscale;
+	bool manual_phase = vsp1_pipeline_partitioned(pipe);
 	bool multitap;
 
 	input = vsp1_entity_get_pad_format(&uds->entity, uds->entity.config,
@@ -299,7 +300,8 @@ static void uds_configure_stream(struct vsp1_entity *entity,
 
 	vsp1_uds_write(uds, dlb, VI6_UDS_CTRL,
 		       (uds->scale_alpha ? VI6_UDS_CTRL_AON : 0) |
-		       (multitap ? VI6_UDS_CTRL_BC : 0));
+		       (multitap ? VI6_UDS_CTRL_BC : 0) |
+		       (manual_phase ? VI6_UDS_CTRL_AMDSLH : 0));
 
 	vsp1_uds_write(uds, dlb, VI6_UDS_PASS_BWIDTH,
 		       (uds_passband_width(hscale)
@@ -327,7 +329,8 @@ static void uds_configure_partition(struct vsp1_entity *entity,
 
 	/* Input size clipping. */
 	vsp1_uds_write(uds, dlb, VI6_UDS_HSZCLIP, VI6_UDS_HSZCLIP_HCEN |
-		       (0 << VI6_UDS_HSZCLIP_HCL_OFST_SHIFT) |
+		       (partition->uds_sink.offset
+				<< VI6_UDS_HSZCLIP_HCL_OFST_SHIFT) |
 		       (partition->uds_sink.width
 				<< VI6_UDS_HSZCLIP_HCL_SIZE_SHIFT));
 
@@ -337,6 +340,12 @@ static void uds_configure_partition(struct vsp1_entity *entity,
 				<< VI6_UDS_CLIP_SIZE_HSIZE_SHIFT) |
 		       (output->height
 				<< VI6_UDS_CLIP_SIZE_VSIZE_SHIFT));
+
+	vsp1_uds_write(uds, dlb, VI6_UDS_HPHASE,
+		       (partition->start_phase
+				<< VI6_UDS_HPHASE_HSTP_SHIFT) |
+		       (partition->end_phase
+				<< VI6_UDS_HPHASE_HEDP_SHIFT));
 }
 
 static unsigned int uds_max_width(struct vsp1_entity *entity,
@@ -379,26 +388,132 @@ static void uds_partition(struct vsp1_entity *entity,
 			  struct vsp1_pipeline *pipe,
 			  struct vsp1_partition *partition,
 			  unsigned int partition_idx,
-			  struct vsp1_partition_window *window)
+			  struct vsp1_partition_window *window,
+			  bool forwards)
 {
 	struct vsp1_uds *uds = to_uds(&entity->subdev);
 	const struct v4l2_mbus_framefmt *output;
 	const struct v4l2_mbus_framefmt *input;
+	unsigned int hscale;
+	unsigned int margin;
+	unsigned int mp;
+	unsigned int src_left;
+	unsigned int src_right;
+	unsigned int dst_left;
+	unsigned int dst_right;
+	unsigned int remainder;
 
-	/* Initialise the partition state. */
-	partition->uds_sink = *window;
-	partition->uds_source = *window;
+	if (forwards) {
+		/* Accept and consume any input offset (clipping) request. */
+		partition->uds_sink.offset = window->offset;
+		window->offset = 0;
+
+		/* pass on the output we computed in the backwards pass. */
+		*window = partition->uds_source;
+
+		return;
+	}
 
 	input = vsp1_entity_get_pad_format(&uds->entity, uds->entity.config,
 					   UDS_PAD_SINK);
 	output = vsp1_entity_get_pad_format(&uds->entity, uds->entity.config,
 					    UDS_PAD_SOURCE);
 
-	partition->uds_sink.width = window->width * input->width
-				  / output->width;
-	partition->uds_sink.left = window->left * input->width
-				 / output->width;
+	/*
+	 * Quantify the margin required for discontinuous overlap, and expand
+	 * the window no further than the limits of the image.
+	 *
+	 * When downscaling, the UDS has a pre-scaling binning filter which
+	 * reduces the input by either 2 or 4 depending on the downscale ratio,
+	 * which we must align with. The output is then fed into a 5 tap
+	 * bi-cubic filter requiring us to expand our output window by 2 pixels
+	 * on each side.
+	 *
+	 * When upscaling the extra margin is required from the input side and
+	 * we round up the expansion to a power of 2.
+	 */
+	hscale = uds_compute_ratio(input->width, output->width);
+	margin = hscale < 0x0200 ? 32 : /* 8 <  scale */
+		 hscale < 0x0400 ? 16 : /* 4 <  scale <= 8 */
+		 hscale < 0x0800 ?  8 : /* 2 <  scale <= 4 */
+		 hscale < 0x1000 ?  4 : /* 1 <  scale <= 2 */
+				    2;  /*	scale <= 1 (downscaling) */
 
+	dst_left = max_t(int, 0, window->left - margin);
+	dst_right = min_t(int, output->width - 1,
+			  window->left + window->width - 1 + margin);
+
+	/*
+	 * We must correctly identify the input positions which represent the
+	 * output positions taking into account all of the processing the
+	 * hardware does. This requires several operations (Steps 1-5 below).
+	 *
+	 * First convert output positions to input positions, then convert
+	 * back to output positions to account for any rounding requirements.
+	 * Once adjusted, the final input positions are determined.
+	 */
+
+	mp = uds_pre_scaling_divisor(hscale);
+
+	/* Step 1: Calculate temporary src_left (src_pos0) position. */
+	/* Step 2: Calculate temporary dst_left (dst_pos0_pb) position. */
+	if (partition_idx == 0) {
+		src_left = 0;
+		dst_left = 0;
+	} else {
+		unsigned int sub_src = mp == 1 ? 1 : 2;
+
+		src_left = ((dst_left * hscale) / (4096 * mp) - sub_src) * mp;
+		dst_left = src_left * 4096 / hscale;
+	}
+
+	/*
+	 * Step 3: Pull back dst_left (dst_pos0_pb) to the left to satisfy
+	 * alignment restrictions (the input of the bicubic filter must be
+	 * aligned to a multiple of the pre-filter divisor).
+	 */
+	remainder = (dst_left * hscale) % mp;
+	if (remainder)
+		/* Remainder can only be two when mp == 4. */
+		dst_left = round_down(dst_left, hscale % mp == 2 ? 2 : mp);
+
+	/* Step 4: Recalculate src_left from newly adjusted dst_left. */
+	src_left = DIV_ROUND_UP(dst_left * hscale, 4096 * mp) * mp;
+
+	/* Step 5: Calculate src_right (src_pos1). */
+	if (partition_idx == pipe->partitions - 1)
+		src_right = input->width - 1;
+	else
+		src_right = (((dst_right * hscale) / (mp * 4096)) + 2)
+			  * mp + (mp / 2);
+
+	/* Step 6: Calculate start phase (hstp). */
+	remainder = (src_left * hscale) % (mp * 4096);
+	partition->start_phase = (4096 - remainder / mp) % 4096;
+
+	/*
+	 * Step 7: Calculate end phase (hedp).
+	 *
+	 * We do not currently use VI6_UDS_CTRL_AMD from VI6_UDS_CTRL.
+	 * In the event that we enable VI6_UDS_CTRL_AMD, we must set the end
+	 * phase for the final partition to the phase_edge.
+	 */
+	partition->end_phase = 0;
+
+	/*
+	 * Fill in our partition windows with the updated positions, and
+	 * configure our output offset to allow extraneous pixels to be
+	 * clipped by later entities.
+	 */
+	partition->uds_sink.left = src_left;
+	partition->uds_sink.width = src_right - src_left + 1;
+
+	partition->uds_source.left = dst_left;
+	partition->uds_source.width = dst_right - dst_left + 1;
+
+	partition->uds_source.offset = window->left - dst_left;
+
+	/* Pass a copy of our sink down to the previous entity. */
 	*window = partition->uds_sink;
 }
 

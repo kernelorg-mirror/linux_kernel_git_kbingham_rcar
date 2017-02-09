@@ -58,26 +58,30 @@ enum vsp1_pipeline_state {
  * @left: horizontal coordinate of the partition start in pixels relative to the
  *	  left edge of the image
  * @width: partition width in pixels
+ * @offset: The number of pixels from the left edge of the window to clip
  */
 struct vsp1_partition_window {
 	unsigned int left;
 	unsigned int width;
+	unsigned int offset;
 };
 
 /*
  * struct vsp1_partition - A description of a slice for the partition algorithm
- * @rpf: The RPF partition window configuration
+ * @rpf: The RPF output partition window configuration
  * @uds_sink: The UDS input partition window configuration
  * @uds_source: The UDS output partition window configuration
- * @sru: The SRU partition window configuration
- * @wpf: The WPF partition window configuration
+ * @wpf: The WPF input partition window configuration
+ * @start_phase: The UDS start phase for this partition
+ * @end_phase: The UDS end phase for this partition
  */
 struct vsp1_partition {
 	struct vsp1_partition_window rpf;
 	struct vsp1_partition_window uds_sink;
 	struct vsp1_partition_window uds_source;
-	struct vsp1_partition_window sru;
 	struct vsp1_partition_window wpf;
+	unsigned int start_phase;
+	unsigned int end_phase;
 };
 
 /*
@@ -165,6 +169,8 @@ void vsp1_pipeline_propagate_alpha(struct vsp1_pipeline *pipe,
 				   unsigned int alpha);
 
 bool vsp1_pipeline_partitioned(struct vsp1_pipeline *pipe);
+bool vsp1_pipeline_partition_last(struct vsp1_pipeline *pipe,
+				  unsigned int index);
 void vsp1_pipeline_propagate_partition(struct vsp1_pipeline *pipe,
 				       struct vsp1_partition *partition,
 				       unsigned int index,
