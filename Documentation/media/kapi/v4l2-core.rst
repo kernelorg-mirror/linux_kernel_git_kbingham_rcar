@@ -13,6 +13,7 @@ Video4Linux devices
     v4l2-event
     v4l2-fh
     v4l2-flash-led-class
+    v4l2-fwnode
     v4l2-intro
     v4l2-mc
     v4l2-mediabus
