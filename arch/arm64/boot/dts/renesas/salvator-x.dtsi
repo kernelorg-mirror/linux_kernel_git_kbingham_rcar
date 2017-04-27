@@ -388,6 +388,11 @@
 		function = "pwm1";
 	};
 
+	pwm2_pins: pwm2 {
+		groups = "pwm2_a";
+		function = "pwm2";
+	};
+
 	sdhi0_pins: sd0 {
 		groups = "sdhi0_data4", "sdhi0_ctrl";
 		function = "sdhi0";
@@ -502,6 +507,13 @@
 	pinctrl-0 = <&pwm1_pins>;
 	pinctrl-names = "default";
 
+	status = "okay";
+};
+
+&pwm2 {
+	/* PMIC DC/DC switching frequency synchronization */
+	pinctrl-0 = <&pwm2_pins>;
+	pinctrl-names = "default";
 	status = "okay";
 };
 
