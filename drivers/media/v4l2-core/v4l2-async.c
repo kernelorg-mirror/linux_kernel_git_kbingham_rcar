@@ -60,6 +60,35 @@ static bool match_custom(struct v4l2_subdev *sd, struct v4l2_async_subdev *asd)
 	return asd->match.custom.match(sd->dev, asd);
 }
 
+bool v4l2_async_match(struct v4l2_subdev *sd,
+		      struct v4l2_async_subdev *asd)
+{
+	bool (*match)(struct v4l2_subdev *, struct v4l2_async_subdev *);
+
+	switch (asd->match_type) {
+	case V4L2_ASYNC_MATCH_CUSTOM:
+		match = match_custom;
+		break;
+	case V4L2_ASYNC_MATCH_DEVNAME:
+		match = match_devname;
+		break;
+	case V4L2_ASYNC_MATCH_I2C:
+		match = match_i2c;
+		break;
+	case V4L2_ASYNC_MATCH_FWNODE:
+		match = match_fwnode;
+		break;
+	default:
+		/* Cannot happen, unless someone breaks us */
+		WARN_ON(true);
+		return false;
+	}
+
+	/* match cannot be NULL here */
+	return match(sd, asd);
+}
+EXPORT_SYMBOL(v4l2_async_match);
+
 static LIST_HEAD(subdev_list);
 static LIST_HEAD(notifier_list);
 static DEFINE_MUTEX(list_lock);
@@ -67,32 +96,11 @@ static DEFINE_MUTEX(list_lock);
 static struct v4l2_async_subdev *v4l2_async_belongs(struct v4l2_async_notifier *notifier,
 						    struct v4l2_subdev *sd)
 {
-	bool (*match)(struct v4l2_subdev *, struct v4l2_async_subdev *);
 	struct v4l2_async_subdev *asd;
 
 	list_for_each_entry(asd, &notifier->waiting, list) {
 		/* bus_type has been verified valid before */
-		switch (asd->match_type) {
-		case V4L2_ASYNC_MATCH_CUSTOM:
-			match = match_custom;
-			break;
-		case V4L2_ASYNC_MATCH_DEVNAME:
-			match = match_devname;
-			break;
-		case V4L2_ASYNC_MATCH_I2C:
-			match = match_i2c;
-			break;
-		case V4L2_ASYNC_MATCH_FWNODE:
-			match = match_fwnode;
-			break;
-		default:
-			/* Cannot happen, unless someone breaks us */
-			WARN_ON(true);
-			return NULL;
-		}
-
-		/* match cannot be NULL here */
-		if (match(sd, asd))
+		if (v4l2_async_match(sd, asd))
 			return asd;
 	}
 

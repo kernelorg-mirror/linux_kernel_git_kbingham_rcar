@@ -157,4 +157,15 @@ int v4l2_async_register_subdev(struct v4l2_subdev *sd);
  * @sd: pointer to &struct v4l2_subdev
  */
 void v4l2_async_unregister_subdev(struct v4l2_subdev *sd);
+
+/**
+ * v4l2_async_match - match a subdevice with a asynchronous subdevice descriptor
+ *
+ * @sd: pointer to &struct v4l2_subdev
+ * @asd: pointer to &struct v4l2_async_subdev
+ *
+ * Return: true if @asd matches @sd else false
+ */
+bool v4l2_async_match(struct v4l2_subdev *sd,
+		      struct v4l2_async_subdev *asd);
 #endif
