@@ -15,6 +15,7 @@
 #include <linux/kernel.h>
 #include <linux/of.h>
 #include <linux/of_address.h>
+#include <linux/of_graph.h>
 #include <linux/property.h>
 #include <linux/etherdevice.h>
 #include <linux/phy.h>
@@ -182,11 +183,12 @@ static int pset_prop_read_string(struct property_set *pset,
 	return 0;
 }
 
-static inline struct fwnode_handle *dev_fwnode(struct device *dev)
+struct fwnode_handle *dev_fwnode(struct device *dev)
 {
 	return IS_ENABLED(CONFIG_OF) && dev->of_node ?
 		&dev->of_node->fwnode : dev->fwnode;
 }
+EXPORT_SYMBOL_GPL(dev_fwnode);
 
 /**
  * device_property_present - check if a property of a device is present
@@ -932,6 +934,75 @@ int device_add_properties(struct device *dev,
 EXPORT_SYMBOL_GPL(device_add_properties);
 
 /**
+ * fwnode_get_next_parent - Iterate to the node's parent
+ * @fwnode: Firmware whose parent is retrieved
+ *
+ * This is like fwnode_get_parent() except that it drops the refcount
+ * on the passed node, making it suitable for iterating through a
+ * node's parents.
+ *
+ * Returns a node pointer with refcount incremented, use
+ * fwnode_handle_node() on it when done.
+ */
+struct fwnode_handle *fwnode_get_next_parent(struct fwnode_handle *fwnode)
+{
+	struct fwnode_handle *parent = fwnode_get_parent(fwnode);
+
+	fwnode_handle_put(fwnode);
+
+	return parent;
+}
+EXPORT_SYMBOL_GPL(fwnode_get_next_parent);
+
+/**
+ * fwnode_get_parent - Return parent firwmare node
+ * @fwnode: Firmware whose parent is retrieved
+ *
+ * Return parent firmware node of the given node if possible or %NULL if no
+ * parent was available.
+ */
+struct fwnode_handle *fwnode_get_parent(struct fwnode_handle *fwnode)
+{
+	struct fwnode_handle *parent = NULL;
+
+	if (is_of_node(fwnode)) {
+		struct device_node *node;
+
+		node = of_get_parent(to_of_node(fwnode));
+		if (node)
+			parent = &node->fwnode;
+	} else if (is_acpi_node(fwnode)) {
+		parent = acpi_node_get_parent(fwnode);
+	}
+
+	return parent;
+}
+EXPORT_SYMBOL_GPL(fwnode_get_parent);
+
+/**
+ * fwnode_get_next_child_node - Return the next child node handle for a node
+ * @fwnode: Firmware node to find the next child node for.
+ * @child: Handle to one of the node's child nodes or a %NULL handle.
+ */
+struct fwnode_handle *fwnode_get_next_child_node(struct fwnode_handle *fwnode,
+						 struct fwnode_handle *child)
+{
+	if (is_of_node(fwnode)) {
+		struct device_node *node;
+
+		node = of_get_next_available_child(to_of_node(fwnode),
+						   to_of_node(child));
+		if (node)
+			return &node->fwnode;
+	} else if (is_acpi_node(fwnode)) {
+		return acpi_get_next_subnode(fwnode, child);
+	}
+
+	return NULL;
+}
+EXPORT_SYMBOL_GPL(fwnode_get_next_child_node);
+
+/**
  * device_get_next_child_node - Return the next child node handle for a device
  * @dev: Device to find the next child node for.
  * @child: Handle to one of the device's child nodes or a null handle.
@@ -939,34 +1010,33 @@ EXPORT_SYMBOL_GPL(device_add_properties);
 struct fwnode_handle *device_get_next_child_node(struct device *dev,
 						 struct fwnode_handle *child)
 {
-	if (IS_ENABLED(CONFIG_OF) && dev->of_node) {
-		struct device_node *node;
+	struct acpi_device *adev = ACPI_COMPANION(dev);
+	struct fwnode_handle *fwnode = NULL;
 
-		node = of_get_next_available_child(dev->of_node, to_of_node(child));
-		if (node)
-			return &node->fwnode;
-	} else if (IS_ENABLED(CONFIG_ACPI)) {
-		return acpi_get_next_subnode(dev, child);
-	}
-	return NULL;
+	if (dev->of_node)
+		fwnode = &dev->of_node->fwnode;
+	else if (adev)
+		fwnode = acpi_fwnode_handle(adev);
+
+	return fwnode_get_next_child_node(fwnode, child);
 }
 EXPORT_SYMBOL_GPL(device_get_next_child_node);
 
 /**
- * device_get_named_child_node - Return first matching named child node handle
- * @dev: Device to find the named child node for.
+ * fwnode_get_named_child_node - Return first matching named child node handle
+ * @fwnode: Firmware node to find the named child node for.
  * @childname: String to match child node name against.
  */
-struct fwnode_handle *device_get_named_child_node(struct device *dev,
+struct fwnode_handle *fwnode_get_named_child_node(struct fwnode_handle *fwnode,
 						  const char *childname)
 {
 	struct fwnode_handle *child;
 
 	/*
-	 * Find first matching named child node of this device.
+	 * Find first matching named child node of this fwnode.
 	 * For ACPI this will be a data only sub-node.
 	 */
-	device_for_each_child_node(dev, child) {
+	fwnode_for_each_child_node(fwnode, child) {
 		if (is_of_node(child)) {
 			if (!of_node_cmp(to_of_node(child)->name, childname))
 				return child;
@@ -978,7 +1048,30 @@ struct fwnode_handle *device_get_named_child_node(struct device *dev,
 
 	return NULL;
 }
+EXPORT_SYMBOL_GPL(fwnode_get_named_child_node);
+
+/**
+ * device_get_named_child_node - Return first matching named child node handle
+ * @dev: Device to find the named child node for.
+ * @childname: String to match child node name against.
+ */
+struct fwnode_handle *device_get_named_child_node(struct device *dev,
+						  const char *childname)
+{
+	return fwnode_get_named_child_node(dev_fwnode(dev), childname);
+}
 EXPORT_SYMBOL_GPL(device_get_named_child_node);
+
+/**
+ * fwnode_handle_get - Obtain a reference to a device node
+ * @fwnode: Pointer to the device node to obtain the reference to.
+ */
+void fwnode_handle_get(struct fwnode_handle *fwnode)
+{
+	if (is_of_node(fwnode))
+		of_node_get(to_of_node(fwnode));
+}
+EXPORT_SYMBOL_GPL(fwnode_handle_get);
 
 /**
  * fwnode_handle_put - Drop reference to a device node
@@ -1117,3 +1210,157 @@ void *device_get_mac_address(struct device *dev, char *addr, int alen)
 	return device_get_mac_addr(dev, "address", addr, alen);
 }
 EXPORT_SYMBOL(device_get_mac_address);
+
+/**
+ * device_graph_get_next_endpoint - Get next endpoint firmware node
+ * @fwnode: Pointer to the parent firmware node
+ * @prev: Previous endpoint node or %NULL to get the first
+ *
+ * Returns an endpoint firmware node pointer or %NULL if no more endpoints
+ * are available.
+ */
+struct fwnode_handle *
+fwnode_graph_get_next_endpoint(struct fwnode_handle *fwnode,
+			       struct fwnode_handle *prev)
+{
+	struct fwnode_handle *endpoint = NULL;
+
+	if (is_of_node(fwnode)) {
+		struct device_node *node;
+
+		node = of_graph_get_next_endpoint(to_of_node(fwnode),
+						  to_of_node(prev));
+
+		if (node)
+			endpoint = &node->fwnode;
+	} else if (is_acpi_node(fwnode)) {
+		endpoint = acpi_graph_get_next_endpoint(fwnode, prev);
+		if (IS_ERR(endpoint))
+			endpoint = NULL;
+	}
+
+	return endpoint;
+
+}
+EXPORT_SYMBOL_GPL(fwnode_graph_get_next_endpoint);
+
+/**
+ * fwnode_graph_get_remote_port_parent - Return fwnode of a remote device
+ * @fwnode: Endpoint firmware node pointing to the remote endpoint
+ *
+ * Extracts firmware node of a remote device the @fwnode points to.
+ */
+struct fwnode_handle *
+fwnode_graph_get_remote_port_parent(struct fwnode_handle *fwnode)
+{
+	struct fwnode_handle *parent = NULL;
+
+	if (is_of_node(fwnode)) {
+		struct device_node *node;
+
+		node = of_graph_get_remote_port_parent(to_of_node(fwnode));
+		if (node)
+			parent = &node->fwnode;
+	} else if (is_acpi_node(fwnode)) {
+		int ret;
+
+		ret = acpi_graph_get_remote_endpoint(fwnode, &parent, NULL,
+						     NULL);
+		if (ret)
+			return NULL;
+	}
+
+	return parent;
+}
+EXPORT_SYMBOL_GPL(fwnode_graph_get_remote_port_parent);
+
+/**
+ * fwnode_graph_get_remote_port - Return fwnode of a remote port
+ * @fwnode: Endpoint firmware node pointing to the remote endpoint
+ *
+ * Extracts firmware node of a remote port the @fwnode points to.
+ */
+struct fwnode_handle *fwnode_graph_get_remote_port(struct fwnode_handle *fwnode)
+{
+	struct fwnode_handle *port = NULL;
+
+	if (is_of_node(fwnode)) {
+		struct device_node *node;
+
+		node = of_graph_get_remote_port(to_of_node(fwnode));
+		if (node)
+			port = &node->fwnode;
+	} else if (is_acpi_node(fwnode)) {
+		int ret;
+
+		ret = acpi_graph_get_remote_endpoint(fwnode, NULL, &port, NULL);
+		if (ret)
+			return NULL;
+	}
+
+	return port;
+}
+EXPORT_SYMBOL_GPL(fwnode_graph_get_remote_port);
+
+/**
+ * fwnode_graph_get_remote_endpoint - Return fwnode of a remote endpoint
+ * @fwnode: Endpoint firmware node pointing to the remote endpoint
+ *
+ * Extracts firmware node of a remote endpoint the @fwnode points to.
+ */
+struct fwnode_handle *
+fwnode_graph_get_remote_endpoint(struct fwnode_handle *fwnode)
+{
+	struct fwnode_handle *endpoint = NULL;
+
+	if (is_of_node(fwnode)) {
+		struct device_node *node;
+
+		node = of_parse_phandle(to_of_node(fwnode), "remote-endpoint",
+					0);
+		if (node)
+			endpoint = &node->fwnode;
+	} else if (is_acpi_node(fwnode)) {
+		int ret;
+
+		ret = acpi_graph_get_remote_endpoint(fwnode, NULL, NULL,
+						     &endpoint);
+		if (ret)
+			return NULL;
+	}
+
+	return endpoint;
+}
+EXPORT_SYMBOL_GPL(fwnode_graph_get_remote_endpoint);
+
+/**
+ * fwnode_graph_parse_endpoint - parse common endpoint node properties
+ * @fwnode: pointer to endpoint fwnode_handle
+ * @endpoint: pointer to the fwnode endpoint data structure
+ *
+ * Parse @fwnode representing a graph endpoint node and store the
+ * information in @endpoint. The caller must hold a reference to
+ * @fwnode.
+ */
+int fwnode_graph_parse_endpoint(struct fwnode_handle *fwnode,
+				struct fwnode_endpoint *endpoint)
+{
+	struct fwnode_handle *port_fwnode = fwnode_get_parent(fwnode);
+
+	memset(endpoint, 0, sizeof(*endpoint));
+
+	endpoint->local_fwnode = fwnode;
+
+	if (is_acpi_node(port_fwnode)) {
+		fwnode_property_read_u32(port_fwnode, "port", &endpoint->port);
+		fwnode_property_read_u32(fwnode, "endpoint", &endpoint->id);
+	} else {
+		fwnode_property_read_u32(port_fwnode, "reg", &endpoint->port);
+		fwnode_property_read_u32(fwnode, "reg", &endpoint->id);
+	}
+
+	fwnode_handle_put(port_fwnode);
+
+	return 0;
+}
+EXPORT_SYMBOL(fwnode_graph_parse_endpoint);
