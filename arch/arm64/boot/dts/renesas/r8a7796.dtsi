@@ -510,6 +510,10 @@
 			status = "disabled";
 		};
 
+		pwm1: pwm@e6e31000 {
+			/* placeholder */
+		};
+
 		can0: can@e6c30000 {
 			compatible = "renesas,can-r8a7796",
 				     "renesas,rcar-gen3-can";
@@ -1129,6 +1133,24 @@
 
 		pciec1: pcie@ee800000 {
 			/* placeholder */
+		};
+
+		hdmi0: hdmi0@fead0000 {
+			/* placeholder */
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+			};
+		};
+
+		hdmi1: hdmi1@feae0000 {
+			/* placeholder */
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+			};
 		};
 
 		du: display@feb00000 {
