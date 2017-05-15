@@ -13,6 +13,7 @@
 /dts-v1/;
 #include "r8a7795-es1.dtsi"
 #include "salvator-x.dtsi"
+#include "salvator-x-max9286.dtsi"
 
 / {
 	model = "Renesas Salvator-X board based on r8a7795 ES1.x";
@@ -120,6 +121,40 @@
 
 &csi40 {
 	status = "okay";
+
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@0 {
+			reg = <0>;
+
+			csi40_in: endpoint {
+				clock-lanes = <0>;
+				data-lanes = <1>;
+				remote-endpoint = <&rdacm20_out0>;
+			};
+		};
+	};
+};
+
+&csi41 {
+	status = "disabled";
+
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@0 {
+			reg = <0>;
+
+			csi41_in: endpoint {
+				clock-lanes = <0>;
+				data-lanes = <1 2 3 4>;
+				remote-endpoint = <&rdacm20_out4>;
+			};
+		};
+	};
 };
 
 &vin0 {
