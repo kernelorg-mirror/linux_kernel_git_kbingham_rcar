@@ -33,6 +33,7 @@
 
 /dts-v1/;
 #include "r8a7795.dtsi"
+#include "salvator-x-max9286.dtsi"
 #include <dt-bindings/gpio/gpio.h>
 
 / {
@@ -404,7 +405,6 @@
 			adv7482_txa: endpoint@1 {
 				clock-lanes = <0>;
 				data-lanes = <1 2 3 4>;
-				remote-endpoint = <&csi40_in>;
 			};
 		};
 	};
@@ -429,7 +429,6 @@
 			adv7482_txb: endpoint@1 {
 				clock-lanes = <0>;
 				data-lanes = <1>;
-				remote-endpoint = <&csi20_in>;
 			};
 		};
 	};
@@ -658,24 +657,6 @@
 	status = "okay";
 };
 
-&csi20 {
-	status = "okay";
-
-	ports {
-		#address-cells = <1>;
-		#size-cells = <0>;
-
-		port@0 {
-			reg = <0>;
-			csi20_in: endpoint@0 {
-				clock-lanes = <0>;
-				data-lanes = <1>;
-				remote-endpoint = <&adv7482_txb>;
-			};
-		};
-	};
-};
-
 &csi40 {
 	status = "okay";
 
@@ -688,8 +669,27 @@
 
 			csi40_in: endpoint@0 {
 				clock-lanes = <0>;
-				data-lanes = <1 2 3 4>;
-				remote-endpoint = <&adv7482_txa>;
+				data-lanes = <1>;
+				remote-endpoint = <&rdacm20_out0>;
+			};
+		};
+	};
+};
+
+&csi41 {
+	status = "disabled";
+
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@0 {
+			reg = <0>;
+
+			csi41_in: endpoint@0 {
+				clock-lanes = <0>;
+				data-lanes = <1>;
+				remote-endpoint = <&rdacm20_out4>;
 			};
 		};
 	};
