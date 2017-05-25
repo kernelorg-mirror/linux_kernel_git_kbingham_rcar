@@ -70,22 +70,22 @@ void rcar_du_vsp_enable(struct rcar_du_crtc *crtc)
 	 */
 	crtc->group->need_restart = true;
 
-	vsp1_du_setup_lif(crtc->vsp->vsp, &cfg);
+	vsp1_du_setup_lif(crtc->vsp->vsp, 0, &cfg);
 }
 
 void rcar_du_vsp_disable(struct rcar_du_crtc *crtc)
 {
-	vsp1_du_setup_lif(crtc->vsp->vsp, NULL);
+	vsp1_du_setup_lif(crtc->vsp->vsp, 0, NULL);
 }
 
 void rcar_du_vsp_atomic_begin(struct rcar_du_crtc *crtc)
 {
-	vsp1_du_atomic_begin(crtc->vsp->vsp);
+	vsp1_du_atomic_begin(crtc->vsp->vsp, 0);
 }
 
 void rcar_du_vsp_atomic_flush(struct rcar_du_crtc *crtc)
 {
-	vsp1_du_atomic_flush(crtc->vsp->vsp);
+	vsp1_du_atomic_flush(crtc->vsp->vsp, 0);
 }
 
 /* Keep the two tables in sync. */
@@ -153,6 +153,7 @@ static void rcar_du_vsp_plane_setup(struct rcar_du_vsp_plane *plane)
 		to_rcar_vsp_plane_state(plane->plane.state);
 	struct drm_framebuffer *fb = plane->plane.state->fb;
 	struct vsp1_du_atomic_config cfg = {
+		.pipe = 0,
 		.pixelformat = 0,
 		.pitch = fb->pitches[0],
 		.alpha = state->alpha,
