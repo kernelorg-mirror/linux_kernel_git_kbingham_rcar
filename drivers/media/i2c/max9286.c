@@ -232,16 +232,6 @@ static int max9286_setup(struct max9286_device *dev)
 		else
 			max9286_write(dev, 0x12, 0xf3);
 			/* enable CSI-2 Lanes D[0:3], DBL mode, YUV422  8-bit*/
-#define FSYNC_PERIOD	(1280*800*2)
-#if 0
-		max9286_write(dev, 0x01, 0x00);
-			/* manual: FRAMESYNC set manually
-			*  via [0x06:0x08] regs
-			*/
-#endif
-		max9286_write(dev, 0x06, FSYNC_PERIOD & 0xff);
-		max9286_write(dev, 0x07, (FSYNC_PERIOD >> 8) & 0xff);
-		max9286_write(dev, 0x08, FSYNC_PERIOD >> 16);
 		if (MAX9286_NUM_PORTS == 1) {
 			max9286_write(dev, 0x01, 0xc0);
 				/* ECU (aka MCU) based FrameSync using
