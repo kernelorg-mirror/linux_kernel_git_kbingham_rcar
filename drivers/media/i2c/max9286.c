@@ -312,11 +312,11 @@ static int max9286_setup(struct max9286_device *dev)
 		mdelay(5);	/* wait 5ms for conf_link to establish */
 	}
 
-	/* Reverse channel setup */
+	/* Enable equalizer for the required number of links */
 	dev->client->addr = des_addr;			/* MAX9286-CAMx I2C */
-	max9286_write(dev, 0x1b, 0x0f);
-				/* enable equalizer for all links */
+	max9286_write(dev, 0x1b, (1 << MAX9286_NUM_PORTS) - 1);
 
+	/* Reverse channel setup */
 	if (MAX9286_NUM_PORTS == 1)
 		max9286_write(dev, 0x0a, 0xf1);
 				/* enable reverse control only for link0 */
