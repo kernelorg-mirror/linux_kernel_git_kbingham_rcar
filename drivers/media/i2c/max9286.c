@@ -117,11 +117,23 @@ static int max9286_i2c_mux_init(struct max9286_device *dev)
 
 	dev->mux->priv = dev;
 
+	/*
+	 * We need all input links enabled to be able to configure  the remote
+	 * ov10635 camera during serializer probe sequence, but we cannot keep
+	 * all links enabled during streaming otherwise deserializer expects
+	 * frames from all of them.
+	 */
+	max9286_write(dev, 0x00, 0xe0 | ((1 << MAX9286_NUM_PORTS) - 1));
+	max9286_write(dev, 0x0a, 0xf0 | ((1 << MAX9286_NUM_PORTS) - 1));
+
 	for (i = 0; i < MAX9286_NUM_PORTS; ++i) {
 		ret = i2c_mux_add_adapter(dev->mux, 0, i, 0);
 		if (ret < 0)
 			goto error;
 	}
+
+	max9286_write(dev, 0x00, 0xe0);
+	max9286_write(dev, 0x0a, 0xf0);
 
 	return 0;
 
@@ -236,27 +248,13 @@ static int max9286_setup(struct max9286_device *dev)
 		/* Enable CSI-2 Lane D0 only, DBL mode, YUV422 8-bit*/
 		max9286_write(dev, 0x12, 0x33);
 
-		if (MAX9286_NUM_PORTS == 1) {
+		if (MAX9286_NUM_PORTS == 1)
+			/* ECU (aka MCU) based FrameSync using GPI-to-GPO */
 			max9286_write(dev, 0x01, 0xc0);
-				/* ECU (aka MCU) based FrameSync using
-				*  GPI-to-GPO
-				*/
-			max9286_write(dev, 0x00, 0xe1);
-				/* enable GMSL link 0, auto detect link
-				*  used for CSI clock source
-				*/
-			max9286_write(dev, 0x69, 0x0e);
-				/* Mask Links 1 2 3, unmask link 0 */
-		} else {
+		else
+			/* automatic: FRAMESYNC taken from the slowest Link */
 			max9286_write(dev, 0x01, 0x02);
-				/* automatic: FRAMESYNC taken
-				*  from the slowest Link
-				*/
-			max9286_write(dev, 0x00, 0xef);
-				/* enable GMSL links [0:3], auto detect link
-				* used for CSI clock source
-				*/
-		}
+
 		max9286_write(dev, 0x0c, 0x89);
 			/* enable HS/VS encoding, use D14/15 for HS/VS,
 			* invert VS
@@ -309,17 +307,6 @@ static int max9286_setup(struct max9286_device *dev)
 	/* Enable equalizer for the required number of links */
 	dev->client->addr = des_addr;			/* MAX9286-CAMx I2C */
 	max9286_write(dev, 0x1b, (1 << MAX9286_NUM_PORTS) - 1);
-
-	/* Reverse channel setup */
-	if (MAX9286_NUM_PORTS == 1)
-		max9286_write(dev, 0x0a, 0xf1);
-				/* enable reverse control only for link0 */
-	else
-		max9286_write(dev, 0x0a, 0xff);
-				/* enable reverse control for all cams */
-	mdelay(2);	/* wait 2ms after any change of reverse
-			* channel settings
-			*/
 
 	return 0;
 }
