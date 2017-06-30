@@ -207,30 +207,6 @@ static int max9286_setup(struct max9286_device *dev)
 		max9286_write(dev, 0x08, 0x1);
 		mdelay(2);
 
-		/* MAX9286 Video format and CSI-2 setup */
-		/* Disable CSI output, VC is set accordingly to Link number */
-		dev->client->addr = des_addr;
-		max9286_write(dev, 0x15, 0x13);
-
-		/*
-		 * FIXME: once this driver will be have an endpoint, retrieve
-		 * CSI lines number from there, and set image format properly.
-		 * For now, it stays hardcoded to 1 line only to comply with
-		 * current VIN settings.
-		 */
-		/* Enable CSI-2 Lane D0 only, DBL mode, YUV422 8-bit*/
-		max9286_write(dev, 0x12, 0x33);
-
-		if (MAX9286_NUM_PORTS == 1)
-			/* ECU (aka MCU) based FrameSync using GPI-to-GPO */
-			max9286_write(dev, 0x01, 0xc0);
-		else
-			/* automatic: FRAMESYNC taken from the slowest Link */
-			max9286_write(dev, 0x01, 0x02);
-
-		/* Enable HS/VS encoding, use D14/15 for HS/VS, invert VS */
-		max9286_write(dev, 0x0c, 0x89);
-
 		/* MAX9271 GMSL setup */
 		dev->client->addr = 0x40;
 		/* Disable artificial ACK, I2C speed set */
@@ -273,8 +249,31 @@ static int max9286_setup(struct max9286_device *dev)
 		mdelay(5);
 	}
 
-	/* MAX9286 enable equalizer for the required number of links */
+	/* MAX9286 Video format and CSI-2 setup */
+	/* Disable CSI output, VC is set accordingly to Link number */
 	dev->client->addr = des_addr;
+	max9286_write(dev, 0x15, 0x13);
+
+	/*
+	 * FIXME: once this driver will be have an endpoint, retrieve
+	 * CSI lines number from there, and set image format properly.
+	 * For now, it stays hardcoded to 1 line only to comply with
+	 * current VIN settings.
+	 */
+	/* Enable CSI-2 Lane D0 only, DBL mode, YUV422 8-bit*/
+	max9286_write(dev, 0x12, 0x33);
+
+	if (MAX9286_NUM_PORTS == 1)
+		/* ECU (aka MCU) based FrameSync using GPI-to-GPO */
+		max9286_write(dev, 0x01, 0xc0);
+	else
+		/* automatic: FRAMESYNC taken from the slowest Link */
+		max9286_write(dev, 0x01, 0x02);
+
+	/* Enable HS/VS encoding, use D14/15 for HS/VS, invert VS */
+	max9286_write(dev, 0x0c, 0x89);
+
+	/* MAX9286 enable equalizer for the required number of links */
 	max9286_write(dev, 0x1b, (1 << MAX9286_NUM_PORTS) - 1);
 
 	return 0;
