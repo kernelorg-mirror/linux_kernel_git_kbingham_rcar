@@ -18,7 +18,7 @@
 #include <linux/regulator/consumer.h>
 #include <linux/slab.h>
 
-#define MAX9286_NUM_PORTS	1	/* Number of ports (usually 4, can be lower for debugging) */
+#define MAX9286_NUM_PORTS	4	/* Number of ports (usually 4, can be lower for debugging) */
 
 #define MAXIM_I2C_I2C_SPEED_400KHZ	(0x5 << 2) /* 339 kbps */
 #define MAXIM_I2C_I2C_SPEED_100KHZ	(0x3 << 2) /* 105 kbps */
