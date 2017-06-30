@@ -91,6 +91,24 @@ static int max9271_write(struct rdacm20_device *dev, u8 reg, u8 val)
 	return ret;
 }
 
+static int max9271_read(struct rdacm20_device *dev, u8 reg)
+{
+	int ret;
+
+	ret = i2c_smbus_read_byte_data(dev->client, reg);
+	if (ret < 0) {
+		dev_dbg(&dev->client->dev,
+			"%s: register 0x%02x read failed (%d)\n",
+			__func__, reg, ret);
+		return ret;
+	}
+
+	dev_dbg(&dev->client->dev, "%s(0x%02x, 0x%02x)\n",
+		__func__, reg, ret);
+
+	return ret;
+}
+
 static int ov10635_read(struct rdacm20_device *dev, u16 reg, u8 *val)
 {
 	u8 buf[2] = { reg >> 8, reg & 0xff };
@@ -149,7 +167,7 @@ static int rdacm20_s_stream(struct v4l2_subdev *sd, int enable)
 {
 	struct rdacm20_device *dev = sd_to_rdacm20(sd);
 	int cam_idx = dev->client->addr - CAM;
-	int tmp_addr;
+	int tmp_addr, max9286_link_en;
 
 	if (!(dev->client->addr == (CAM + 0) || dev->client->addr == (CAM + 4)))
 		return 0;
@@ -162,6 +180,11 @@ static int rdacm20_s_stream(struct v4l2_subdev *sd, int enable)
 		 *	VC is set accordingly to Link number,
 		 *	BIT7 magic must be set
 		 */
+
+	max9286_link_en = max9271_read(dev, 0x00);
+	if (max9286_link_en < 0)
+		return max9286_link_en;
+
 #if 0
 	max9271_write(dev, 0x0a, 0xff);
 				/* enable reverse_control/conf_link */
@@ -178,9 +201,9 @@ static int rdacm20_s_stream(struct v4l2_subdev *sd, int enable)
 #if 0
 	ov10635_write(dev, 0x0100, enable); /* stream on/off */
 #endif
+	tmp_addr = dev->client->addr;
 	if (enable) {
 		/* switch to GMSL serial_link for streaming video */
-		tmp_addr = dev->client->addr;
 		dev->client->addr = maxim_map[1][cam_idx];	/* MAX9271-CAMx */
 		max9271_write(dev, 0x04, 0x83);
 				/* enable reverse_control/serial_link */
@@ -196,10 +219,18 @@ static int rdacm20_s_stream(struct v4l2_subdev *sd, int enable)
 			 *  VC is set accordingly to Link number,
 			 *  BIT7 magic must be set
 			 */
+
+		/* Enable a new input link */
+		max9271_write(dev, 0x00, max9286_link_en | (1 << cam_idx));
 		mdelay(5);
 			/* wait 2ms after changing reverse_control */
-		dev->client->addr = tmp_addr;
+	} else {
+		/* Disable the input link on max9286 side */
+		dev->client->addr = maxim_map[0][cam_idx];	/* MAX9286-CAMx */
+		max9271_write(dev, 0x00, max9286_link_en & ~(1 << cam_idx));
 	}
+
+	dev->client->addr = tmp_addr;
 
 	return 0;
 }
