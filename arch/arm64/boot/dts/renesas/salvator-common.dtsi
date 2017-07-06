@@ -296,25 +296,6 @@
 	};
 };
 
-&csi40 {
-	status = "okay";
-
-	ports {
-		#address-cells = <1>;
-		#size-cells = <0>;
-
-		port@0 {
-			reg = <0>;
-
-			csi40_in: endpoint {
-				clock-lanes = <0>;
-				data-lanes = <1 2 3 4>;
-				remote-endpoint = <&adv7482_txa>;
-			};
-		};
-	};
-};
-
 &cvbs_con {
 	port {
 		cvbs_in: endpoint {
@@ -452,7 +433,6 @@
 			adv7482_txa: endpoint {
 				clock-lanes = <0>;
 				data-lanes = <1 2 3 4>;
-				remote-endpoint = <&csi40_in>;
 			};
 		};
 
