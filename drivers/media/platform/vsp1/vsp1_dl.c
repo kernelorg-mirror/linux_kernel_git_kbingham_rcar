@@ -20,7 +20,7 @@
 #include "vsp1.h"
 #include "vsp1_dl.h"
 
-#define VSP1_DL_NUM_ENTRIES		256
+#define VSP1_DL_NUM_ENTRIES		128
 
 #define VSP1_DLH_INT_ENABLE		(1 << 1)
 #define VSP1_DLH_AUTO_START		(1 << 0)
@@ -418,6 +418,25 @@ void vsp1_dl_list_write(struct vsp1_dl_list *dl, u32 reg, u32 data)
 	vsp1_dl_fragment_write(dl->body0, reg, data);
 }
 
+static void vsp1_dl_list_print_body(struct vsp1_dl_body *dlb, char *pfx)
+{
+	trace_printk(" %s->num_entries %u / max %u\n",
+			pfx, dlb->num_entries, dlb->max_entries);
+}
+
+static void vsp1_dl_list_print_info(struct vsp1_dl_list *dl)
+{
+
+	struct vsp1_dl_list *dl_child;
+
+	trace_printk("List %p\n", dl);
+	vsp1_dl_list_print_body(dl->body0, "dl->body0");
+
+	list_for_each_entry(dl_child, &dl->chain, chain) {
+		vsp1_dl_list_print_body(dl_child->body0, "dl_child->body0");
+	}
+}
+
 /**
  * vsp1_dl_list_add_fragment - Add a fragment to the display list
  * @dl: The display list
@@ -611,6 +630,8 @@ static void vsp1_dl_list_commit_singleshot(struct vsp1_dl_list *dl)
 	 * to hardware. Chained lists will be started automatically.
 	 */
 	vsp1_dl_list_hw_enqueue(dl);
+
+	vsp1_dl_list_print_info(dl);
 
 	dlm->active = dl;
 }
