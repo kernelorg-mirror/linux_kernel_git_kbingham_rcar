@@ -570,16 +570,39 @@ int __rcar_du_plane_atomic_check(struct drm_plane *plane,
 				 const struct rcar_du_format_info **format)
 {
 	struct drm_device *dev = plane->dev;
+	struct drm_crtc_state *crtc_state;
+	struct drm_rect clip;
+	int ret;
 
-	if (!state->fb || !state->crtc) {
+	if (!state->crtc) {
+		/*
+		 * The visible field is not reset by the DRM core but only
+		 * updated by drm_plane_helper_check_state(), set it manually.
+		 */
+		state->visible = false;
 		*format = NULL;
 		return 0;
-	}
+	};
 
-	if (state->src_w >> 16 != state->crtc_w ||
-	    state->src_h >> 16 != state->crtc_h) {
-		dev_dbg(dev->dev, "%s: scaling not supported\n", __func__);
-		return -EINVAL;
+	crtc_state = drm_atomic_get_crtc_state(state->state, state->crtc);
+	if (IS_ERR(crtc_state))
+		return PTR_ERR(crtc_state);
+
+	clip.x1 = 0;
+	clip.y1 = 0;
+	clip.x2 = crtc_state->adjusted_mode.hdisplay;
+	clip.y2 = crtc_state->adjusted_mode.vdisplay;
+
+	ret = drm_plane_helper_check_state(state, &clip,
+					   DRM_PLANE_HELPER_NO_SCALING,
+					   DRM_PLANE_HELPER_NO_SCALING,
+					   true, true);
+	if (ret < 0)
+		return ret;
+
+	if (!state->visible) {
+		*format = NULL;
+		return 0;
 	}
 
 	*format = rcar_du_format_info(state->fb->format->format);
@@ -607,7 +630,7 @@ static void rcar_du_plane_atomic_update(struct drm_plane *plane,
 	struct rcar_du_plane_state *old_rstate;
 	struct rcar_du_plane_state *new_rstate;
 
-	if (!plane->state->crtc)
+	if (!plane->state->visible)
 		return;
 
 	rcar_du_plane_setup(rplane);

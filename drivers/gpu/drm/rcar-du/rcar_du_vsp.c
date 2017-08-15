@@ -212,7 +212,11 @@ static int rcar_du_vsp_plane_prepare_fb(struct drm_plane *plane,
 	unsigned int i;
 	int ret;
 
-	if (!state->fb)
+	/*
+	 * There's no need to prepare (and unprepare) the framebuffer when the
+	 * plane is not visible, as it will not be displayed.
+	 */
+	if (!state->visible)
 		return 0;
 
 	for (i = 0; i < rstate->format->planes; ++i) {
@@ -253,7 +257,7 @@ static void rcar_du_vsp_plane_cleanup_fb(struct drm_plane *plane,
 	struct rcar_du_vsp *vsp = to_rcar_vsp_plane(plane)->vsp;
 	unsigned int i;
 
-	if (!state->fb)
+	if (!state->visible)
 		return;
 
 	for (i = 0; i < rstate->format->planes; ++i) {
@@ -278,7 +282,7 @@ static void rcar_du_vsp_plane_atomic_update(struct drm_plane *plane,
 	struct rcar_du_vsp_plane *rplane = to_rcar_vsp_plane(plane);
 	struct rcar_du_crtc *crtc = to_rcar_crtc(old_state->crtc);
 
-	if (plane->state->crtc)
+	if (plane->state->visible)
 		rcar_du_vsp_plane_setup(rplane);
 	else
 		vsp1_du_atomic_update(rplane->vsp->vsp, crtc->vsp_pipe,
