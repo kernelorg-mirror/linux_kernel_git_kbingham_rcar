@@ -1185,6 +1185,20 @@ static int max9286_init(struct device *dev)
 		return ret;
 	}
 
+	/*
+	 * Regulator Workaround:
+	 *
+	 * We must sleep at least 8 seconds to let the cameras power and
+	 * complete their bootstrapping process. This should be handled by the
+	 * call to regulator_enable, but alas on V3M we end up in a circular
+	 * dependency due to the regulator being connected to our own gpio_chip
+	 *
+	 * This sleep is a temporary work-around and should be removed, which
+	 * ensures enough time has passed from the gpio_chip enabling a
+	 * gpio-hog before we enable any reverse channels within max9286_setup.
+	 */
+	usleep_range(8000000, 9000000);
+
 	ret = max9286_setup(priv);
 	if (ret) {
 		dev_err(dev, "Unable to setup max9286\n");
