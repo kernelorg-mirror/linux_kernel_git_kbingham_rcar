@@ -27,6 +27,7 @@
 #include <linux/delay.h>
 #include <linux/err.h>
 #include <linux/errno.h>
+#include <linux/gpio.h>
 #include <linux/gpio/consumer.h>
 #include <linux/i2c.h>
 #include <linux/i2c-smbus.h>
@@ -147,6 +148,11 @@ static int get_sda_gpio_value(struct i2c_adapter *adap)
 	return gpiod_get_value_cansleep(adap->bus_recovery_info->sda_gpiod);
 }
 
+static void set_sda_gpio_value(struct i2c_adapter *adap, int val)
+{
+	gpiod_set_value_cansleep(adap->bus_recovery_info->sda_gpiod, val);
+}
+
 /*
  * We are generating clock pulses. ndelay() determines durating of clk pulses.
  * We will generate clock with rate 100 KHz and so duration of both clock levels
@@ -164,6 +170,8 @@ int i2c_generic_scl_recovery(struct i2c_adapter *adap)
 		bri->prepare_recovery(adap);
 
 	bri->set_scl(adap, val);
+	if (bri->set_sda)
+		bri->set_sda(adap, 1);
 	ndelay(RECOVERY_NDELAY);
 
 	/*
@@ -191,6 +199,18 @@ int i2c_generic_scl_recovery(struct i2c_adapter *adap)
 	/* check if recovery actually succeeded */
 	if (bri->get_sda && !bri->get_sda(adap))
 		ret = -EBUSY;
+
+	/* If all went well, send STOP for a sane bus state. */
+	if (ret == 0 && bri->set_sda) {
+		bri->set_scl(adap, 0);
+		ndelay(RECOVERY_NDELAY / 2);
+		bri->set_sda(adap, 0);
+		ndelay(RECOVERY_NDELAY / 2);
+		bri->set_scl(adap, 1);
+		ndelay(RECOVERY_NDELAY / 2);
+		bri->set_sda(adap, 1);
+		ndelay(RECOVERY_NDELAY / 2);
+	}
 
 	if (bri->unprepare_recovery)
 		bri->unprepare_recovery(adap);
@@ -225,8 +245,11 @@ static void i2c_init_recovery(struct i2c_adapter *adap)
 	if (bri->scl_gpiod && bri->recover_bus == i2c_generic_scl_recovery) {
 		bri->get_scl = get_scl_gpio_value;
 		bri->set_scl = set_scl_gpio_value;
-		if (bri->sda_gpiod)
+		if (bri->sda_gpiod) {
 			bri->get_sda = get_sda_gpio_value;
+			if (gpiod_get_direction(bri->sda_gpiod) == GPIOF_DIR_OUT)
+				bri->set_sda = set_sda_gpio_value;
+		}
 		return;
 	}
 
