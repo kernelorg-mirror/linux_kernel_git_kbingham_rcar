@@ -70,6 +70,16 @@
  */
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]) + __must_be_array(arr))
 
+/**
+ * for_each_array_element - Iterate all items in an array
+ * @elem: pointer of array type for iteration cursor
+ * @array: array to be iterated
+ */
+#define for_each_array_element(elem, array) \
+	for (elem = &(array)[0]; \
+	     elem < &(array)[ARRAY_SIZE(array)]; \
+	     ++elem)
+
 #define u64_to_user_ptr(x) (		\
 {					\
 	typecheck(u64, x);		\
