@@ -596,9 +596,7 @@ struct uvc_streaming {
 };
 
 #define for_each_uvc_urb(uvc_urb, uvc_streaming) \
-	for (uvc_urb = &uvc_streaming->uvc_urb[0]; \
-	     uvc_urb < &uvc_streaming->uvc_urb[UVC_URBS]; \
-	     ++uvc_urb)
+	for_each_array_element(uvc_urb, uvc_streaming->uvc_urb)
 
 struct uvc_device {
 	struct usb_device *udev;
