@@ -237,3 +237,6 @@
 &vspi2 {
 	status = "okay";
 };
+
+/* Include the max9286 expansion board "overlay" */
+#include "salvator-x-max9286.dtsi"
