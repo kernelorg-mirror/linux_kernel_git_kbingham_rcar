@@ -316,6 +316,7 @@ bool vsp1_pipeline_ready(struct vsp1_pipeline *pipe)
 void vsp1_pipeline_frame_end(struct vsp1_pipeline *pipe)
 {
 	bool completed;
+	bool notify;
 
 	if (pipe == NULL)
 		return;
@@ -325,7 +326,7 @@ void vsp1_pipeline_frame_end(struct vsp1_pipeline *pipe)
 	 * up being postponed by one frame. @completed represents whether the
 	 * active frame was finished or postponed.
 	 */
-	completed = vsp1_dlm_irq_frame_end(pipe->output->dlm);
+	completed = vsp1_dlm_irq_frame_end(pipe->output->dlm, &notify);
 
 	if (pipe->hgo)
 		vsp1_hgo_frame_end(pipe->hgo);
@@ -338,7 +339,7 @@ void vsp1_pipeline_frame_end(struct vsp1_pipeline *pipe)
 	 * frame_end to account for vblank events.
 	 */
 	if (pipe->frame_end)
-		pipe->frame_end(pipe, completed);
+		pipe->frame_end(pipe, completed, notify);
 
 	pipe->sequence++;
 }

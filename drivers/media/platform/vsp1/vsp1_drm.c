@@ -34,7 +34,7 @@
  */
 
 static void vsp1_du_pipeline_frame_end(struct vsp1_pipeline *pipe,
-				       bool completed)
+				       bool completed, bool notify)
 {
 	struct vsp1_drm_pipeline *drm_pipe = to_vsp1_drm_pipeline(pipe);
 
@@ -370,7 +370,7 @@ static void vsp1_du_pipeline_configure(struct vsp1_pipeline *pipe)
 		}
 	}
 
-	vsp1_dl_list_commit(dl);
+	vsp1_dl_list_commit(dl, false);
 }
 
 /* -----------------------------------------------------------------------------

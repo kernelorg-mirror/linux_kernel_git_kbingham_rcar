@@ -72,6 +72,7 @@ struct vsp1_dl_body {
  * @fragments: list of extra display list bodies
  * @has_chain: if true, indicates that there's a partition chain
  * @chain: entry in the display list partition chain
+ * @notify: whether the display list completion should be notified
  */
 struct vsp1_dl_list {
 	struct list_head list;
@@ -85,6 +86,8 @@ struct vsp1_dl_list {
 
 	bool has_chain;
 	struct list_head chain;
+
+	bool notify;
 };
 
 enum vsp1_dl_mode {
@@ -550,8 +553,16 @@ static void vsp1_dl_list_commit_continuous(struct vsp1_dl_list *dl)
 	 * case we can't replace the queued list by the new one, as we could
 	 * race with the hardware. We thus mark the update as pending, it will
 	 * be queued up to the hardware by the frame end interrupt handler.
+	 *
+	 * If a display list is already pending we simply drop it as the new
+	 * display list is assumed to contain a more recent configuration. It is
+	 * an error if the already pending list has the notify flag set, as
+	 * there is then a process waiting for that list to complete. This
+	 * shouldn't happen as the waiting process should perform proper
+	 * locking, but warn just in case.
 	 */
 	if (vsp1_dl_list_hw_update_pending(dlm)) {
+		WARN_ON(dlm->pending && dlm->pending->notify);
 		__vsp1_dl_list_put(dlm->pending);
 		dlm->pending = dl;
 		return;
@@ -581,7 +592,7 @@ static void vsp1_dl_list_commit_singleshot(struct vsp1_dl_list *dl)
 	dlm->active = dl;
 }
 
-void vsp1_dl_list_commit(struct vsp1_dl_list *dl)
+void vsp1_dl_list_commit(struct vsp1_dl_list *dl, bool notify)
 {
 	struct vsp1_dl_manager *dlm = dl->dlm;
 	struct vsp1_dl_list *dl_child;
@@ -597,6 +608,8 @@ void vsp1_dl_list_commit(struct vsp1_dl_list *dl)
 			vsp1_dl_list_fill_header(dl_child, last);
 		}
 	}
+
+	dl->notify = notify;
 
 	spin_lock_irqsave(&dlm->lock, flags);
 
@@ -615,15 +628,22 @@ void vsp1_dl_list_commit(struct vsp1_dl_list *dl)
 /**
  * vsp1_dlm_irq_frame_end - Display list handler for the frame end interrupt
  * @dlm: the display list manager
+ * @notify: whether the display list that completed has notification enabled
  *
  * Return true if the previous display list has completed at frame end, or false
  * if it has been delayed by one frame because the display list commit raced
  * with the frame end interrupt. The function always returns true in header mode
  * as display list processing is then not continuous and races never occur.
+ *
+ * Upon return, the @notify parameter is set to true if the previous display
+ * list has completed and had been queued with the notify flag, or to false
+ * otherwise. Notification is only supported for continuous mode.
  */
-bool vsp1_dlm_irq_frame_end(struct vsp1_dl_manager *dlm)
+bool vsp1_dlm_irq_frame_end(struct vsp1_dl_manager *dlm, bool *notify)
 {
 	bool completed = false;
+
+	*notify = false;
 
 	spin_lock(&dlm->lock);
 
@@ -652,6 +672,9 @@ bool vsp1_dlm_irq_frame_end(struct vsp1_dl_manager *dlm)
 	 * frame end interrupt. The display list thus becomes active.
 	 */
 	if (dlm->queued) {
+		*notify = dlm->queued->notify;
+		dlm->queued->notify = false;
+
 		__vsp1_dl_list_put(dlm->active);
 		dlm->active = dlm->queued;
 		dlm->queued = NULL;
