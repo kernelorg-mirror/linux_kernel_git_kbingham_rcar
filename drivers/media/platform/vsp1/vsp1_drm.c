@@ -193,8 +193,8 @@ static unsigned int rpf_zpos(struct vsp1_device *vsp1, struct vsp1_rwpf *rpf)
 }
 
 /* Setup the input side of the pipeline (RPFs and BRU). */
-static int vsp1_du_pipeline_setup_input(struct vsp1_device *vsp1,
-					struct vsp1_pipeline *pipe)
+static int vsp1_du_pipeline_setup_inputs(struct vsp1_device *vsp1,
+					 struct vsp1_pipeline *pipe)
 {
 	struct vsp1_rwpf *inputs[VSP1_MAX_RPF] = { NULL, };
 	struct vsp1_bru *bru = to_bru(&pipe->bru->subdev);
@@ -271,6 +271,65 @@ static int vsp1_du_pipeline_setup_input(struct vsp1_device *vsp1,
 				__func__, rpf->entity.index);
 			return ret;
 		}
+	}
+
+	return 0;
+}
+
+/* Setup the output side of the pipeline (WPF and LIF). */
+static int vsp1_du_pipeline_setup_output(struct vsp1_device *vsp1,
+					 struct vsp1_pipeline *pipe)
+{
+	struct vsp1_drm_pipeline *drm_pipe = to_vsp1_drm_pipeline(pipe);
+	struct v4l2_subdev_format format = { 0, };
+	int ret;
+
+	format.which = V4L2_SUBDEV_FORMAT_ACTIVE;
+	format.pad = RWPF_PAD_SINK;
+	format.format.width = drm_pipe->width;
+	format.format.height = drm_pipe->height;
+	format.format.code = MEDIA_BUS_FMT_ARGB8888_1X32;
+	format.format.field = V4L2_FIELD_NONE;
+
+	ret = v4l2_subdev_call(&pipe->output->entity.subdev, pad, set_fmt, NULL,
+			       &format);
+	if (ret < 0)
+		return ret;
+
+	dev_dbg(vsp1->dev, "%s: set format %ux%u (%x) on WPF%u sink\n",
+		__func__, format.format.width, format.format.height,
+		format.format.code, pipe->output->entity.index);
+
+	format.pad = RWPF_PAD_SOURCE;
+	ret = v4l2_subdev_call(&pipe->output->entity.subdev, pad, get_fmt, NULL,
+			       &format);
+	if (ret < 0)
+		return ret;
+
+	dev_dbg(vsp1->dev, "%s: got format %ux%u (%x) on WPF%u source\n",
+		__func__, format.format.width, format.format.height,
+		format.format.code, pipe->output->entity.index);
+
+	format.pad = LIF_PAD_SINK;
+	ret = v4l2_subdev_call(&pipe->lif->subdev, pad, set_fmt, NULL,
+			       &format);
+	if (ret < 0)
+		return ret;
+
+	dev_dbg(vsp1->dev, "%s: set format %ux%u (%x) on LIF%u sink\n",
+		__func__, format.format.width, format.format.height,
+		format.format.code, pipe->lif->index);
+
+	/*
+	 * Verify that the format at the output of the pipeline matches the
+	 * requested frame size and media bus code.
+	 */
+	if (format.format.width != drm_pipe->width ||
+	    format.format.height != drm_pipe->height ||
+	    format.format.code != MEDIA_BUS_FMT_ARGB8888_1X32) {
+		dev_dbg(vsp1->dev, "%s: format mismatch on LIF%u\n", __func__,
+			pipe->lif->index);
+		return -EPIPE;
 	}
 
 	return 0;
@@ -356,7 +415,6 @@ int vsp1_du_setup_lif(struct device *dev, unsigned int pipe_index,
 	struct vsp1_drm_pipeline *drm_pipe;
 	struct vsp1_pipeline *pipe;
 	struct vsp1_bru *bru;
-	struct v4l2_subdev_format format;
 	unsigned long flags;
 	unsigned int i;
 	int ret;
@@ -413,57 +471,13 @@ int vsp1_du_setup_lif(struct device *dev, unsigned int pipe_index,
 		__func__, pipe_index, cfg->width, cfg->height);
 
 	/* Setup formats through the pipeline. */
-	ret = vsp1_du_pipeline_setup_input(vsp1, pipe);
+	ret = vsp1_du_pipeline_setup_inputs(vsp1, pipe);
 	if (ret < 0)
 		return ret;
 
-	memset(&format, 0, sizeof(format));
-	format.which = V4L2_SUBDEV_FORMAT_ACTIVE;
-	format.pad = RWPF_PAD_SINK;
-	format.format.width = cfg->width;
-	format.format.height = cfg->height;
-	format.format.code = MEDIA_BUS_FMT_ARGB8888_1X32;
-	format.format.field = V4L2_FIELD_NONE;
-
-	ret = v4l2_subdev_call(&pipe->output->entity.subdev, pad, set_fmt, NULL,
-			       &format);
+	ret = vsp1_du_pipeline_setup_output(vsp1, pipe);
 	if (ret < 0)
 		return ret;
-
-	dev_dbg(vsp1->dev, "%s: set format %ux%u (%x) on WPF%u sink\n",
-		__func__, format.format.width, format.format.height,
-		format.format.code, pipe->output->entity.index);
-
-	format.pad = RWPF_PAD_SOURCE;
-	ret = v4l2_subdev_call(&pipe->output->entity.subdev, pad, get_fmt, NULL,
-			       &format);
-	if (ret < 0)
-		return ret;
-
-	dev_dbg(vsp1->dev, "%s: got format %ux%u (%x) on WPF%u source\n",
-		__func__, format.format.width, format.format.height,
-		format.format.code, pipe->output->entity.index);
-
-	format.pad = LIF_PAD_SINK;
-	ret = v4l2_subdev_call(&pipe->lif->subdev, pad, set_fmt, NULL,
-			       &format);
-	if (ret < 0)
-		return ret;
-
-	dev_dbg(vsp1->dev, "%s: set format %ux%u (%x) on LIF%u sink\n",
-		__func__, format.format.width, format.format.height,
-		format.format.code, pipe_index);
-
-	/*
-	 * Verify that the format at the output of the pipeline matches the
-	 * requested frame size and media bus code.
-	 */
-	if (format.format.width != cfg->width ||
-	    format.format.height != cfg->height ||
-	    format.format.code != MEDIA_BUS_FMT_ARGB8888_1X32) {
-		dev_dbg(vsp1->dev, "%s: format mismatch\n", __func__);
-		return -EPIPE;
-	}
 
 	/* Enable the VSP1. */
 	ret = vsp1_device_get(vsp1);
@@ -612,7 +626,7 @@ void vsp1_du_atomic_flush(struct device *dev, unsigned int pipe_index)
 	struct vsp1_drm_pipeline *drm_pipe = &vsp1->drm->pipe[pipe_index];
 	struct vsp1_pipeline *pipe = &drm_pipe->pipe;
 
-	vsp1_du_pipeline_setup_input(vsp1, pipe);
+	vsp1_du_pipeline_setup_inputs(vsp1, pipe);
 	vsp1_du_pipeline_configure(pipe);
 }
 EXPORT_SYMBOL_GPL(vsp1_du_atomic_flush);
