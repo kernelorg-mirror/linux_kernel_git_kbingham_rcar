@@ -221,11 +221,7 @@ int vsp1_du_setup_lif(struct device *dev, unsigned int pipe_index,
 		return -EPIPE;
 	}
 
-	/*
-	 * Enable the VSP1. We don't start the entities themselves right at this
-	 * point as there's no plane configured yet, so we can't start
-	 * processing buffers.
-	 */
+	/* Enable the VSP1. */
 	ret = vsp1_device_get(vsp1);
 	if (ret < 0)
 		return ret;
