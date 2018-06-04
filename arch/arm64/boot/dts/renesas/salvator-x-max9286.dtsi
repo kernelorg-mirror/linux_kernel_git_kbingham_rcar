@@ -19,9 +19,9 @@
  * MAX9286 B
  */
 #define MAXIM_CAMERA4 "imi,rdacm20"
-#define MAXIM_CAMERA5 "imi,rdacm20"
-#define MAXIM_CAMERA6 "imi,rdacm20"
-#define MAXIM_CAMERA7 "imi,rdacm20"
+//#define MAXIM_CAMERA5 "imi,rdacm20"
+//#define MAXIM_CAMERA6 "imi,rdacm20"
+//#define MAXIM_CAMERA7 "imi,rdacm20"
 
 / {
 /*
