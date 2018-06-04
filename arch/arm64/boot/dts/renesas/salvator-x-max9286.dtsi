@@ -10,18 +10,18 @@
 /*
  * MAX9286 A
  */
-#define MAXIM_CAMERA0 "imi,rdacm20"
-#define MAXIM_CAMERA1 "imi,rdacm20"
-#define MAXIM_CAMERA2 "imi,rdacm20"
-#define MAXIM_CAMERA3 "imi,rdacm20"
+//#define MAXIM_CAMERA0 "imi,rdacm20"
+//#define MAXIM_CAMERA1 "imi,rdacm20"
+//#define MAXIM_CAMERA2 "imi,rdacm20"
+//#define MAXIM_CAMERA3 "imi,rdacm20"
 
 /*
  * MAX9286 B
  */
-#define MAXIM_CAMERA4 "imi,rdacm20"
-#define MAXIM_CAMERA5 "imi,rdacm20"
-#define MAXIM_CAMERA6 "imi,rdacm20"
-#define MAXIM_CAMERA7 "imi,rdacm20"
+//#define MAXIM_CAMERA4 "imi,rdacm20"
+//#define MAXIM_CAMERA5 "imi,rdacm20"
+//#define MAXIM_CAMERA6 "imi,rdacm20"
+//#define MAXIM_CAMERA7 "imi,rdacm20"
 
 / {
 /*
