@@ -1063,6 +1063,17 @@ config VIDEO_DW9807_VCM
 
 endif
 
+config VIDEO_RDACM20
+	tristate "IMI RDACM20 camera support"
+	depends on I2C && VIDEO_V4L2_SUBDEV_API && MEDIA_CONTROLLER
+	select V4L2_FWNODE
+	help
+	  This driver supports the IMI RDACM20 GMSL camera, used in
+	  ADAS systems.
+
+	  This camera should be used in conjunction with a GMSL
+	  deserialiser such as the MAX9286.
+
 comment "Flash devices"
 
 if MEDIA_CAMERA_SUPPORT
