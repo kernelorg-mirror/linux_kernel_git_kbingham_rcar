@@ -151,6 +151,7 @@ ibm	International Business Machines (IBM)
 idt	Integrated Device Technologies, Inc.
 ifi	Ingenieurburo Fur Ic-Technologie (I/F/I)
 img	Imagination Technologies Ltd.
+imi	Integrated Micro-Electronics Inc.
 infineon Infineon Technologies
 inforce	Inforce Computing
 ingenic	Ingenic Semiconductor
