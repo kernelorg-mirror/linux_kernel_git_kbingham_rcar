@@ -453,6 +453,8 @@ patternProperties:
     description: Ingenieurburo Fur Ic-Technologie (I/F/I)
   "^ilitek,.*":
     description: ILI Technology Corporation (ILITEK)
+  "^imi,.*":
+    description: Integrated Micro-Electronics Inc.
   "^img,.*":
     description: Imagination Technologies Ltd.
   "^incircuit,.*":
