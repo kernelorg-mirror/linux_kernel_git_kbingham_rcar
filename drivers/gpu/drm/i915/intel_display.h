@@ -41,6 +41,8 @@ enum i915_gpio {
 	GPIOM,
 };
 
+#include <drm/drm_util.h>
+
 enum pipe {
 	INVALID_PIPE = -1,
 
