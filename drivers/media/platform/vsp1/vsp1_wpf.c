@@ -417,7 +417,7 @@ static void wpf_configure_partition(struct vsp1_entity *entity,
 	 * Cropping. The partition algorithm can split the image into
 	 * multiple slices.
 	 */
-	if (pipe->partitions > 1) {
+	if (vsp1_pipeline_partitioned(pipe)) {
 		width = pipe->partition->wpf.width;
 		left = pipe->partition->wpf.left;
 	}

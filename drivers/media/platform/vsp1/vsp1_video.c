@@ -201,7 +201,7 @@ static void vsp1_video_calculate_partition(struct vsp1_pipeline *pipe,
 					    RWPF_PAD_SINK);
 
 	/* A single partition simply processes the output size in full. */
-	if (pipe->partitions <= 1) {
+	if (!vsp1_pipeline_partitioned(pipe)) {
 		window.left = 0;
 		window.width = format->width;
 

@@ -427,7 +427,15 @@ void vsp1_pipeline_propagate_alpha(struct vsp1_pipeline *pipe,
 }
 
 /*
- * Propagate the partition calculations through the pipeline
+ * Identify if the partition algorithm is in use or not.
+ */
+bool vsp1_pipeline_partitioned(struct vsp1_pipeline *pipe)
+{
+	return pipe->partitions > 1;
+}
+
+/*
+ * Propagate the partition calculations through the pipeline.
  *
  * Work backwards through the pipe, allowing each entity to update the partition
  * parameters based on its configuration, and the entity connected to its

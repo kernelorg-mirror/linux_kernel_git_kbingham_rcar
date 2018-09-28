@@ -270,7 +270,7 @@ static void rpf_configure_partition(struct vsp1_entity *entity,
 	 * matching the expected partition window. Only 'left' and
 	 * 'width' need to be adjusted.
 	 */
-	if (pipe->partitions > 1) {
+	if (vsp1_pipeline_partitioned(pipe)) {
 		crop.width = pipe->partition->rpf.width;
 		crop.left += pipe->partition->rpf.left;
 	}
