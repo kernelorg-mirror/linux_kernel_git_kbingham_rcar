@@ -259,6 +259,30 @@ static void vsp1_video_calculate_partition(struct vsp1_pipeline *pipe,
 	vsp1_pipeline_propagate_partition(pipe, partition, index, &window);
 }
 
+static void vsp1_print_partition(struct vsp1_partition *p)
+{
+	pr_err("RPF[%3u,%3u,%3u]:UDSSINK[%3u,%3u,%3u]:UDSSRC[%3u,%3u,%3u]:WPF[%3u,%3u,%3u]\n",
+		p->rpf.left, 		p->rpf.width, 		p->rpf.offset,
+		p->uds_sink.left, 	p->uds_sink.width, 	p->uds_sink.offset,
+		p->uds_source.left, 	p->uds_source.width, 	p->uds_source.offset,
+		p->wpf.left, 		p->wpf.width,		p->wpf.offset
+		);
+}
+
+static void vsp1_print_partition_table(struct vsp1_partition *partition,
+				       unsigned int qty)
+{
+	unsigned int i;
+
+	pr_err("Partition Table:\n");
+
+	for (i = 0; i < qty; i++)
+		vsp1_print_partition(&partition[i]);
+
+	return;
+}
+
+
 static int vsp1_video_pipeline_setup_partitions(struct vsp1_pipeline *pipe)
 {
 	struct vsp1_device *vsp1 = pipe->output->entity.vsp1;
@@ -302,6 +326,10 @@ static int vsp1_video_pipeline_setup_partitions(struct vsp1_pipeline *pipe)
 	for (i = 0; i < pipe->partitions; ++i)
 		vsp1_video_calculate_partition(pipe, &pipe->part_table[i],
 					       div_size, i);
+
+
+	vsp1_print_partition_table(pipe->part_table, pipe->partitions);
+
 
 	return 0;
 }
