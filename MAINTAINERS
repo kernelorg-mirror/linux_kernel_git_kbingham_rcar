@@ -3692,6 +3692,12 @@ S:	Maintained
 F:	Documentation/devicetree/bindings/media/coda.txt
 F:	drivers/media/platform/coda/
 
+CODE OF CONDUCT
+M:	Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+S:	Supported
+F:	Documentation/process/code-of-conduct.rst
+F:	Documentation/process/code-of-conduct-interpretation.rst
+
 COMMON CLK FRAMEWORK
 M:	Michael Turquette <mturquette@baylibre.com>
 M:	Stephen Boyd <sboyd@kernel.org>
@@ -14703,6 +14709,13 @@ M:	Murali Karicheri <m-karicheri2@ti.com>
 L:	netdev@vger.kernel.org
 S:	Maintained
 F:	drivers/net/ethernet/ti/netcp*
+
+TI PCM3060 ASoC CODEC DRIVER
+M:	Kirill Marinushkin <kmarinushkin@birdec.tech>
+L:	alsa-devel@alsa-project.org (moderated for non-subscribers)
+S:	Maintained
+F:	Documentation/devicetree/bindings/sound/pcm3060.txt
+F:	sound/soc/codecs/pcm3060*
 
 TI TAS571X FAMILY ASoC CODEC DRIVER
 M:	Kevin Cernekee <cernekee@chromium.org>
