@@ -160,14 +160,23 @@ struct media_link {
  *
  * @graph_obj:	Embedded structure containing the media object common data
  * @entity:	Entity this pad belongs to
+ * @pipe:	Pipeline this pad belongs to.
+ * @stream_count: Stream count for the pad.
  * @index:	Pad index in the entity pads array, numbered from 0 to n
  * @flags:	Pad flags, as defined in
  *		:ref:`include/uapi/linux/media.h <media_header>`
  *		(seek for ``MEDIA_PAD_FL_*``)
+ * .. note::
+ *
+ *    @stream_count reference count must never be negative, but is a signed
+ *    integer on purpose: a simple ``WARN_ON(<0)`` check can be used to
+ *    detect reference count bugs that would make them negative.
  */
 struct media_pad {
 	struct media_gobj graph_obj;	/* must be first field in struct */
 	struct media_entity *entity;
+	struct media_pipeline *pipe;
+	int stream_count;
 	u16 index;
 	unsigned long flags;
 };
@@ -244,9 +253,7 @@ enum media_entity_type {
  * @pads:	Pads array with the size defined by @num_pads.
  * @links:	List of data links.
  * @ops:	Entity operations.
- * @stream_count: Stream count for the entity.
  * @use_count:	Use count for the entity.
- * @pipe:	Pipeline this entity belongs to.
  * @info:	Union with devnode information.  Kept just for backward
  *		compatibility.
  * @major:	Devnode major number (zero if not applicable). Kept just
@@ -256,10 +263,9 @@ enum media_entity_type {
  *
  * .. note::
  *
- *    @stream_count and @use_count reference counts must never be
- *    negative, but are signed integers on purpose: a simple ``WARN_ON(<0)``
- *    check can be used to detect reference count bugs that would make them
- *    negative.
+ *    @use_count reference count must never be negative, but is a signed
+ *    integer on purpose: a simple ``WARN_ON(<0)`` check can be used to
+ *    detect reference count bugs that would make them negative.
  */
 struct media_entity {
 	struct media_gobj graph_obj;	/* must be first field in struct */
@@ -278,10 +284,7 @@ struct media_entity {
 
 	const struct media_entity_operations *ops;
 
-	int stream_count;
 	int use_count;
-
-	struct media_pipeline *pipe;
 
 	union {
 		struct {
