@@ -946,7 +946,7 @@ static int max9286_init(struct device *dev, void *data)
 
 	v4l2_i2c_subdev_init(&max9286->sd, client, &max9286_subdev_ops);
 	max9286->sd.internal_ops = &max9286_subdev_internal_ops;
-	max9286->sd.flags = V4L2_SUBDEV_FL_HAS_DEVNODE;
+	max9286->sd.flags |= V4L2_SUBDEV_FL_HAS_DEVNODE;
 
 	v4l2_ctrl_handler_init(&max9286->ctrls, 1);
 	/*
