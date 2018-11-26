@@ -962,7 +962,7 @@ static const struct of_device_id max9286_dt_ids[] = {
 };
 MODULE_DEVICE_TABLE(of, max9286_dt_ids);
 
-static int max9286_init(struct device *dev, void *data)
+static int max9286_init(struct device *dev)
 {
 	struct max9286_device *max9286;
 	struct i2c_client *client;
@@ -1059,25 +1059,6 @@ err_regulator:
 	max9286->poc_enabled = false;
 
 	return ret;
-}
-
-static int max9286_is_bound(struct device *dev, void *data)
-{
-	struct device *this = data;
-	int ret;
-
-	if (dev == this)
-		return 0;
-
-	/* Skip non-max9286 devices. */
-	if (!dev->of_node || !of_match_node(max9286_dt_ids, dev->of_node))
-		return 0;
-
-	ret = device_is_bound(dev);
-	if (!ret)
-		return -EPROBE_DEFER;
-
-	return 0;
 }
 
 static struct device_node *max9286_get_i2c_by_id(struct device_node *parent,
@@ -1289,20 +1270,9 @@ static int max9286_probe(struct i2c_client *client,
 	/* Add any userspace support before we return early. */
 	max9286_debugfs_init(dev);
 
-	ret = device_for_each_child(client->dev.parent, &client->dev,
-				    max9286_is_bound);
-	if (ret)
-		return 0;
-
-	dev_dbg(&client->dev,
-		"All max9286 probed: start initialization sequence\n");
-	ret = device_for_each_child(client->dev.parent, NULL,
-				    max9286_init);
+	ret = max9286_init(&client->dev);
 	if (ret < 0)
 		goto err_regulator;
-
-	/* Leave the mux channels disabled until they are selected. */
-	max9286_i2c_mux_close(dev);
 
 	return 0;
 
