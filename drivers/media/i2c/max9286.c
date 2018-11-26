@@ -524,7 +524,7 @@ static int max9286_check_video_links(struct max9286_device *dev)
 
 	if (i == 10) {
 		dev_err(&dev->client->dev,
-			"Unable to detect video links: 0x%2x\n", ret);
+			"Unable to detect video links: 0x%02x\n", ret);
 		return -EIO;
 	}
 
