@@ -24,7 +24,7 @@ Optional Properties:
 Required endpoint nodes:
 -----------------------
 
-The connections to the MAX9286 GMSL and its endpoint nodes are modeled using
+The connections to the MAX9286 GMSL and its endpoint nodes are modelled using
 the OF graph bindings in accordance with the video interface bindings defined
 in Documentation/devicetree/bindings/media/video-interfaces.txt.
 
@@ -51,7 +51,7 @@ Required Endpoint Properties for CSI-2 Output Port (Port 4):
 Required i2c-mux nodes:
 ----------------------
 
-Each GMSL link is modeled as a child bus of an i2c bus multiplexer/switch, in
+Each GMSL link is modelled as a child bus of an i2c bus multiplexer/switch, in
 accordance with bindings described in
 Documentation/devicetree/bindings/i2c/i2c-mux.txt. The serializer device on the
 remote end of the GMSL link shall be modelled as a child node of the
