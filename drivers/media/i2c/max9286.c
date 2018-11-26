@@ -960,7 +960,7 @@ static int max9286_init(struct device *dev, void *data)
 	if (ret)
 		goto err_regulator;
 
-	max9286->sd.entity.function = MEDIA_ENT_F_PROC_VIDEO_PIXEL_FORMATTER;
+	max9286->sd.entity.function = MEDIA_ENT_F_VID_IF_BRIDGE;
 
 	max9286->pads[MAX9286_SRC_PAD].flags = MEDIA_PAD_FL_SOURCE;
 	for (i = 0; i < MAX9286_SRC_PAD; i++)
