@@ -510,7 +510,7 @@ static int rdacm20_probe(struct i2c_client *client,
 	struct fwnode_handle *ep;
 	int ret;
 
-	dev = kzalloc(sizeof(*dev), GFP_KERNEL);
+	dev = devm_kzalloc(&client->dev, sizeof(*dev), GFP_KERNEL);
 	if (!dev)
 		return -ENOMEM;
 
@@ -573,7 +573,6 @@ error:
 	media_entity_cleanup(&dev->sd.entity);
 	if (dev->sensor)
 		i2c_unregister_device(dev->sensor);
-	kfree(dev);
 
 	dev_err(&client->dev, "probe failed\n");
 
@@ -588,7 +587,6 @@ static int rdacm20_remove(struct i2c_client *client)
 	v4l2_async_unregister_subdev(&dev->sd);
 	media_entity_cleanup(&dev->sd.entity);
 	i2c_unregister_device(dev->sensor);
-	kfree(dev);
 
 	return 0;
 }
