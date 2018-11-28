@@ -543,13 +543,13 @@ static int rdacm20_probe(struct i2c_client *client,
 
 	ret = dev->ctrls.error;
 	if (ret)
-		goto error;
+		goto error_free_ctrls;
 
 	dev->pad.flags = MEDIA_PAD_FL_SOURCE;
 	dev->sd.entity.flags |= MEDIA_ENT_F_CAM_SENSOR;
 	ret = media_entity_pads_init(&dev->sd.entity, 1, &dev->pad);
 	if (ret < 0)
-		goto error;
+		goto error_free_ctrls;
 
 	ep = fwnode_graph_get_next_endpoint(dev_fwnode(&client->dev), NULL);
 	if (!ep) {
@@ -557,7 +557,7 @@ static int rdacm20_probe(struct i2c_client *client,
 			"Unable to get endpoint in node %pOF\n",
 			client->dev.of_node);
 		ret = -ENOENT;
-		goto error;
+		goto error_free_ctrls;
 	}
 	dev->sd.fwnode = ep;
 
@@ -569,6 +569,8 @@ static int rdacm20_probe(struct i2c_client *client,
 
 error_put_node:
 	fwnode_handle_put(ep);
+error_free_ctrls:
+	v4l2_ctrl_handler_free(&dev->ctrls);
 error:
 	media_entity_cleanup(&dev->sd.entity);
 	if (dev->sensor)
@@ -585,6 +587,7 @@ static int rdacm20_remove(struct i2c_client *client)
 
 	fwnode_handle_put(dev->sd.fwnode);
 	v4l2_async_unregister_subdev(&dev->sd);
+	v4l2_ctrl_handler_free(&dev->ctrls);
 	media_entity_cleanup(&dev->sd.entity);
 	i2c_unregister_device(dev->sensor);
 
