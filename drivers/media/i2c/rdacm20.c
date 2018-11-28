@@ -458,9 +458,9 @@ static int rdacm20_initialize(struct rdacm20_device *dev)
 #ifdef RDACM20_SENSOR_HARD_RESET
 	/* Cycle the OV10635 reset signal connected to the MAX9271 GPIO1. */
 	max9271_write(dev, 0x0f, 0xff & ~(MAX9271_GPIO1OUT | MAX9271_SETGPO));
-	mdelay(10);
+	usleep_range(10000, 20000);
 	max9271_write(dev, 0x0f, 0xff & ~MAX9271_SETGPO);
-	mdelay(10);
+	usleep_range(10000, 20000);
 #else
 	/* Perform a software reset. */
 	ret = ov10635_write(dev, OV10635_SOFTWARE_RESET, 1);
