@@ -530,7 +530,7 @@ static int rdacm20_probe(struct i2c_client *client,
 
 	/* Initialize and register the subdevice. */
 	v4l2_i2c_subdev_init(&dev->sd, client, &rdacm20_subdev_ops);
-	dev->sd.flags = V4L2_SUBDEV_FL_HAS_DEVNODE;
+	dev->sd.flags |= V4L2_SUBDEV_FL_HAS_DEVNODE;
 
 	v4l2_ctrl_handler_init(&dev->ctrls, 1);
 	/*
