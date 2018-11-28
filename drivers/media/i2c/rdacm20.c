@@ -503,8 +503,7 @@ static int rdacm20_initialize(struct rdacm20_device *dev)
 				ARRAY_SIZE(ov10635_regs_wizard));
 }
 
-static int rdacm20_probe(struct i2c_client *client,
-			 const struct i2c_device_id *did)
+static int rdacm20_probe(struct i2c_client *client)
 {
 	struct rdacm20_device *dev;
 	struct fwnode_handle *ep;
@@ -602,12 +601,6 @@ static void rdacm20_shutdown(struct i2c_client *client)
 	rdacm20_s_stream(&dev->sd, 0);
 }
 
-static const struct i2c_device_id rdacm20_id[] = {
-	{ "rdacm20", 0 },
-	{ }
-};
-MODULE_DEVICE_TABLE(i2c, rdacm20_id);
-
 static const struct of_device_id rdacm20_of_ids[] = {
 	{ .compatible = "imi,rdacm20", },
 	{ }
@@ -619,10 +612,9 @@ static struct i2c_driver rdacm20_i2c_driver = {
 		.name	= "rdacm20",
 		.of_match_table = rdacm20_of_ids,
 	},
-	.probe		= rdacm20_probe,
+	.probe_new	= rdacm20_probe,
 	.remove		= rdacm20_remove,
 	.shutdown	= rdacm20_shutdown,
-	.id_table	= rdacm20_id,
 };
 
 module_i2c_driver(rdacm20_i2c_driver);
