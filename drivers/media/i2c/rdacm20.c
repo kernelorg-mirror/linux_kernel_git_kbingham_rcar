@@ -499,12 +499,8 @@ static int rdacm20_initialize(struct rdacm20_device *dev)
 	usleep_range(3500, 5000);
 
 	/* Program the 0V10635 initial configuration. */
-	ret = ov10635_set_regs(dev, ov10635_regs_wizard,
-			       ARRAY_SIZE(ov10635_regs_wizard));
-	if (ret)
-		return ret;
-
-	return 0;
+	return ov10635_set_regs(dev, ov10635_regs_wizard,
+				ARRAY_SIZE(ov10635_regs_wizard));
 }
 
 static int rdacm20_probe(struct i2c_client *client,
