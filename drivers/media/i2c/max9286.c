@@ -157,6 +157,7 @@ struct max9286_priv {
 	struct media_pad pads[MAX9286_N_PADS];
 	struct regulator *regulator;
 	struct dentry *dbgroot;
+	bool poc_enabled;
 
 	struct gpio_chip gpio;
 	u8 gpio_state;
@@ -1184,11 +1185,21 @@ static int max9286_register_gpio(struct max9286_priv *priv)
 	return ret;
 }
 
-static int max9286_init(struct device *dev)
+static const struct of_device_id max9286_dt_ids[] = {
+	{ .compatible = "maxim,max9286" },
+	{},
+};
+MODULE_DEVICE_TABLE(of, max9286_dt_ids);
+
+static int max9286_init(struct device *dev, void *data)
 {
 	struct max9286_priv *priv;
 	struct i2c_client *client;
 	int ret;
+
+	/* Skip non-max9286 devices. */
+	if (!dev->of_node || !of_match_node(max9286_dt_ids, dev->of_node))
+		return 0;
 
 	client = to_i2c_client(dev);
 	priv = i2c_get_clientdata(client);
@@ -1199,6 +1210,8 @@ static int max9286_init(struct device *dev)
 		dev_err(&client->dev, "Unable to turn PoC on\n");
 		return ret;
 	}
+
+	priv->poc_enabled = true;
 
 	/*
 	 * Regulator Workaround:
@@ -1245,8 +1258,28 @@ err_v4l2_register:
 	max9286_v4l2_unregister(priv);
 err_regulator:
 	regulator_disable(priv->regulator);
+	priv->poc_enabled = false;
 
 	return ret;
+}
+
+static int max9286_is_bound(struct device *dev, void *data)
+{
+	struct device *this = data;
+	int ret;
+
+	if (dev == this)
+		return 0;
+
+	/* Skip non-max9286 devices. */
+	if (!dev->of_node || !of_match_node(max9286_dt_ids, dev->of_node))
+		return 0;
+
+	ret = device_is_bound(dev);
+	if (!ret)
+		return -EPROBE_DEFER;
+
+	return 0;
 }
 
 static void max9286_cleanup_dt(struct max9286_priv *priv)
@@ -1387,16 +1420,26 @@ static int max9286_probe(struct i2c_client *client)
 		usleep_range(4000, 5000);
 
 	/*
-	 * The MAX9286 starts by default with all ports enabled, we disable all
-	 * ports early to ensure that all channels are disabled if we error out
-	 * and keep the bus consistent.
+	 * We can have multiple MAX9286 instances on the same physical I2C
+	 * bus, and I2C children behind ports of separate MAX9286 instances
+	 * having the same I2C address. As the MAX9286 starts by default with
+	 * all ports enabled, we need to disable all ports on all MAX9286
+	 * instances before proceeding to further initialize the devices and
+	 * instantiate children.
+	 *
+	 * Start by just disabling all channels on the current device. Then,
+	 * if all other MAX9286 on the parent bus have been probed, proceed
+	 * to initialize them all, including the current one.
 	 */
 	max9286_i2c_mux_close(priv);
 
 	/*
 	 * The MAX9286 initialises with auto-acknowledge enabled by default.
-	 * This can be invasive to other transactions on the same bus, so
-	 * disable it early. It will be enabled only as and when needed.
+	 * This means that if multiple MAX9286 devices are connected to an I2C
+	 * bus, another MAX9286 could ack I2C transfers meant for a device on
+	 * the other side of the GMSL links for this MAX9286 (such as a
+	 * MAX9271). To prevent that disable auto-acknowledge early on; it
+	 * will be enabled later as needed.
 	 */
 	max9286_configure_i2c(priv, false);
 
@@ -1421,9 +1464,20 @@ static int max9286_probe(struct i2c_client *client)
 	/* Add any userspace support before we return early. */
 	max9286_debugfs_init(priv);
 
-	ret = max9286_init(&client->dev);
+	ret = device_for_each_child(client->dev.parent, &client->dev,
+				    max9286_is_bound);
+	if (ret)
+		return 0;
+
+	dev_dbg(&client->dev,
+		"All max9286 probed: start initialization sequence\n");
+	ret = device_for_each_child(client->dev.parent, NULL,
+				    max9286_init);
 	if (ret < 0)
 		goto err_cleanup_dt;
+
+	/* Leave the mux channels disabled until they are selected. */
+	max9286_i2c_mux_close(priv);
 
 	return 0;
 
@@ -1447,7 +1501,8 @@ static int max9286_remove(struct i2c_client *client)
 
 	max9286_v4l2_unregister(priv);
 
-	regulator_disable(priv->regulator);
+	if (priv->poc_enabled)
+		regulator_disable(priv->regulator);
 
 	gpiod_set_value_cansleep(priv->gpiod_pwdn, 0);
 
@@ -1455,12 +1510,6 @@ static int max9286_remove(struct i2c_client *client)
 
 	return 0;
 }
-
-static const struct of_device_id max9286_dt_ids[] = {
-	{ .compatible = "maxim,max9286" },
-	{},
-};
-MODULE_DEVICE_TABLE(of, max9286_dt_ids);
 
 static struct i2c_driver max9286_i2c_driver = {
 	.driver	= {
