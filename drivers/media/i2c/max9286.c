@@ -503,6 +503,51 @@ static const struct v4l2_async_notifier_operations max9286_notify_ops = {
 };
 
 /*
+ * max9286_check_config_link() - Detect and wait for configuration links
+ *
+ * Determine if the configuration channel is up and settled for a link.
+ *
+ * Returns 0 for success, -EIO for errors.
+ */
+static int max9286_check_config_link(struct max9286_priv *priv,
+				     unsigned int source_mask)
+{
+	unsigned int i;
+	int ret;
+	const unsigned int max_loops = 1000;
+
+	source_mask &= 0xf;
+	source_mask <<= 4;
+
+	/*
+	 * Make sure requested configuration links are detected.
+	 */
+	for (i = 0; i < max_loops; i++) {
+		ret = max9286_read(priv, 0x49);
+		if (ret < 0)
+			return -EIO;
+
+		if ((ret & source_mask) == source_mask)
+			break;
+
+		usleep_range(350, 500);
+	}
+
+	if (i == max_loops) {
+		dev_err(&priv->client->dev,
+			"Unable to detect configuration links: 0x%02x expected 0x%02x\n",
+			ret, source_mask);
+		return -EIO;
+	}
+
+	dev_err(&priv->client->dev,
+		"Successfully detected configuration links after %u loops: 0x%02x\n",
+		i, ret);
+
+	return 0;
+}
+
+/*
  * max9286_check_video_links() - Make sure video links are detected and locked
  *
  * Performs safety checks on video link status. Make sure they are detected
@@ -830,6 +875,11 @@ static int max9286_setup(struct max9286_priv *priv)
 	 * configuration change.
 	 */
 	usleep_range(2000, 5000);
+
+	/*
+	 * Check to see if the expected configuration links are up.
+	 */
+	max9286_check_config_link(priv, priv->source_mask);
 
 	return 0;
 }
