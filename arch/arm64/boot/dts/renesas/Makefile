@@ -17,3 +17,4 @@ dtb-$(CONFIG_ARCH_R8A77995) += r8a77995-draak.dtb
 
 # SoCs lacking upstream board support
 dtb-$(CONFIG_ARCH_R8A774A1) += r8a774a1-dummy.dtb
+dtb-$(CONFIG_ARCH_R8A774C0) += r8a774c0-dummy.dtb
