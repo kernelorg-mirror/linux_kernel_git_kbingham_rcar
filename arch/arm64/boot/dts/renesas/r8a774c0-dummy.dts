@@ -1,0 +1,2 @@
+/dts-v1/;
+#include "r8a774c0.dtsi"
