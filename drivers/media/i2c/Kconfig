@@ -473,6 +473,17 @@ config VIDEO_VPX3220
 	  To compile this driver as a module, choose M here: the
 	  module will be called vpx3220.
 
+config VIDEO_MAX9286
+	tristate "Maxim MAX9286 GMSL deserializer support"
+	depends on I2C && I2C_MUX
+	depends on VIDEO_V4L2_SUBDEV_API && MEDIA_CONTROLLER
+	select V4L2_FWNODE
+	help
+	  This driver supports the Maxim MAX9286 GMSL deserializer.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called max9286.
+
 comment "Video and audio decoders"
 
 config VIDEO_SAA717X
@@ -992,6 +1003,17 @@ config VIDEO_S5C73M3
 	---help---
 	  This is a V4L2 sensor driver for Samsung S5C73M3
 	  8 Mpixel camera.
+
+config VIDEO_RDACM20
+	tristate "IMI RDACM20 camera support"
+	depends on I2C && VIDEO_V4L2_SUBDEV_API && MEDIA_CONTROLLER
+	select V4L2_FWNODE
+	help
+	  This driver supports the IMI RDACM20 GMSL camera, used in
+	  ADAS systems.
+
+	  This camera should be used in conjunction with a GMSL
+	  deserialiser such as the MAX9286.
 
 comment "Flash devices"
 
