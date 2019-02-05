@@ -88,14 +88,13 @@ static void cpg_simple_notifier_register(struct raw_notifier_head *notifiers,
 #define CPG_FRQCRB			0x00000004
 #define CPG_FRQCRB_KICK			BIT(31)
 #define CPG_FRQCRC			0x000000e0
-#define CPG_FRQCRC_ZFC_MASK		GENMASK(12, 8)
-#define CPG_FRQCRC_Z2FC_MASK		GENMASK(4, 0)
 
 struct cpg_z_clk {
 	struct clk_hw hw;
 	void __iomem *reg;
 	void __iomem *kick_reg;
 	unsigned long mask;
+	unsigned int fixed_div;
 };
 
 #define to_z_clk(_hw)	container_of(_hw, struct cpg_z_clk, hw)
@@ -110,17 +109,18 @@ static unsigned long cpg_z_clk_recalc_rate(struct clk_hw *hw,
 	val = readl(zclk->reg) & zclk->mask;
 	mult = 32 - (val >> __ffs(zclk->mask));
 
-	/* Factor of 2 is for fixed divider */
-	return DIV_ROUND_CLOSEST_ULL((u64)parent_rate * mult, 32 * 2);
+	return DIV_ROUND_CLOSEST_ULL((u64)parent_rate * mult,
+				     32 * zclk->fixed_div);
 }
 
 static long cpg_z_clk_round_rate(struct clk_hw *hw, unsigned long rate,
 				 unsigned long *parent_rate)
 {
-	/* Factor of 2 is for fixed divider */
-	unsigned long prate = *parent_rate / 2;
+	struct cpg_z_clk *zclk = to_z_clk(hw);
+	unsigned long prate;
 	unsigned int mult;
 
+	prate = *parent_rate / zclk->fixed_div;;
 	mult = div_u64(rate * 32ULL, prate);
 	mult = clamp(mult, 1U, 32U);
 
@@ -134,8 +134,7 @@ static int cpg_z_clk_set_rate(struct clk_hw *hw, unsigned long rate,
 	unsigned int mult;
 	unsigned int i;
 
-	/* Factor of 2 is for fixed divider */
-	mult = DIV_ROUND_CLOSEST_ULL(rate * 32ULL * 2, parent_rate);
+	mult = DIV_ROUND_CLOSEST(rate * 32ULL * zclk->fixed_div, parent_rate);
 	mult = clamp(mult, 1U, 32U);
 
 	if (readl(zclk->kick_reg) & CPG_FRQCRB_KICK)
@@ -178,7 +177,8 @@ static const struct clk_ops cpg_z_clk_ops = {
 static struct clk * __init cpg_z_clk_register(const char *name,
 					      const char *parent_name,
 					      void __iomem *reg,
-					      unsigned long mask)
+					      unsigned int div,
+					      unsigned int offset)
 {
 	struct clk_init_data init;
 	struct cpg_z_clk *zclk;
@@ -197,7 +197,8 @@ static struct clk * __init cpg_z_clk_register(const char *name,
 	zclk->reg = reg + CPG_FRQCRC;
 	zclk->kick_reg = reg + CPG_FRQCRB;
 	zclk->hw.init = &init;
-	zclk->mask = mask;
+	zclk->mask = GENMASK(offset + 4, offset);
+	zclk->fixed_div = div; /* PLLVCO x 1/div x SYS-CPU divider */
 
 	clk = clk_register(NULL, &zclk->hw);
 	if (IS_ERR(clk))
@@ -657,12 +658,9 @@ struct clk * __init rcar_gen3_cpg_clk_register(struct device *dev,
 		break;
 
 	case CLK_TYPE_GEN3_Z:
-		return cpg_z_clk_register(core->name, __clk_get_name(parent),
-					  base, CPG_FRQCRC_ZFC_MASK);
-
 	case CLK_TYPE_GEN3_Z2:
 		return cpg_z_clk_register(core->name, __clk_get_name(parent),
-					  base, CPG_FRQCRC_Z2FC_MASK);
+					  base, core->div, core->offset);
 
 	case CLK_TYPE_GEN3_OSC:
 		/*
