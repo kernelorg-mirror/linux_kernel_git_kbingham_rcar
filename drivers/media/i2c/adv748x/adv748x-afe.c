@@ -464,6 +464,30 @@ static const struct v4l2_subdev_ops adv748x_afe_ops = {
 };
 
 /* -----------------------------------------------------------------------------
+ * media_entity_operations
+ */
+
+static bool adv748x_afe_has_route(struct media_entity *entity,
+				  unsigned int pad0, unsigned int pad1)
+{
+	struct v4l2_subdev *sd = media_entity_to_v4l2_subdev(entity);
+	struct adv748x_afe *afe = adv748x_sd_to_afe(sd);
+
+	/* Only consider direct sink->source routes. */
+	if (pad0 > ADV748X_AFE_SINK_AIN7 || pad1 != ADV748X_AFE_SOURCE)
+		return false;
+
+	if (pad0 != afe->input)
+		return false;
+
+	return true;
+}
+
+static const struct media_entity_operations adv748x_afe_entity_ops = {
+	.has_route = adv748x_afe_has_route,
+};
+
+/* -----------------------------------------------------------------------------
  * Controls
  */
 
@@ -594,6 +618,8 @@ int adv748x_afe_init(struct adv748x_afe *afe)
 		afe->pads[i].flags = MEDIA_PAD_FL_SINK;
 
 	afe->pads[ADV748X_AFE_SOURCE].flags = MEDIA_PAD_FL_SOURCE;
+
+	afe->sd.entity.ops = &adv748x_afe_entity_ops;
 
 	ret = media_entity_pads_init(&afe->sd.entity, ADV748X_AFE_NR_PADS,
 			afe->pads);
