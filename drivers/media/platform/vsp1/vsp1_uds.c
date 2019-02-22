@@ -47,6 +47,22 @@ void vsp1_uds_set_alpha(struct vsp1_entity *entity, struct vsp1_dl_body *dlb,
 }
 
 /*
+ * Determine the pre-filter binning divider.
+ *
+ * The UDS uses a two stage filter scaler process. This determines the
+ * rate at which pixels are reduced for large down-scaling ratios before
+ * being fed into the bicubic filter.
+ *
+ * This calculation assumes that the BLADV bit is unset.
+ */
+static unsigned int uds_pre_scaling_divisor(int ratio)
+{
+	unsigned int mp = ratio / 4096;
+
+	return mp < 4 ? 1 : (mp < 8 ? 2 : 4);
+}
+
+/*
  * uds_output_size - Return the output size for an input size and scaling ratio
  * @input: input size in pixels
  * @ratio: scaling ratio in U4.12 fixed-point format
@@ -55,10 +71,7 @@ static unsigned int uds_output_size(unsigned int input, unsigned int ratio)
 {
 	if (ratio > 4096) {
 		/* Down-scaling */
-		unsigned int mp;
-
-		mp = ratio / 4096;
-		mp = mp < 4 ? 1 : (mp < 8 ? 2 : 4);
+		unsigned int mp = uds_pre_scaling_divisor(ratio);
 
 		return (input - 1) / mp * mp * 4096 / ratio + 1;
 	} else {
@@ -88,10 +101,7 @@ static unsigned int uds_passband_width(unsigned int ratio)
 {
 	if (ratio >= 4096) {
 		/* Down-scaling */
-		unsigned int mp;
-
-		mp = ratio / 4096;
-		mp = mp < 4 ? 1 : (mp < 8 ? 2 : 4);
+		unsigned int mp = uds_pre_scaling_divisor(ratio);
 
 		return 64 * 4096 * mp / ratio;
 	} else {
