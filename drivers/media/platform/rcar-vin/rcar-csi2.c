@@ -562,11 +562,11 @@ static int rcsi2_start_receiver(struct rcar_csi2 *priv)
 			entry->bus.csi2.channel, entry->bus.csi2.data_type);
 	}
 
-	if (priv->mf.field == V4L2_FIELD_ALTERNATE) {
+	if (priv->mf->field == V4L2_FIELD_ALTERNATE) {
 		fld = FLD_DET_SEL(1) | FLD_FLD_EN4 | FLD_FLD_EN3 | FLD_FLD_EN2
 			| FLD_FLD_EN;
 
-		if (priv->mf.height == 240)
+		if (priv->mf->height == 240)
 			fld |= FLD_FLD_NUM(0);
 		else
 			fld |= FLD_FLD_NUM(1);
@@ -1104,7 +1104,39 @@ static int rcsi2_confirm_start_v3m_e3(struct rcar_csi2 *priv)
  * Platform Device Driver.
  */
 
+static bool rcar_csi2_has_route(struct media_entity *entity,
+				unsigned int pad0, unsigned int pad1)
+{
+	struct v4l2_subdev *sd = media_entity_to_v4l2_subdev(entity);
+	struct rcar_csi2 *priv = sd_to_csi2(sd);
+	struct v4l2_mbus_frame_desc fd;
+	unsigned int i;
+
+	/* Support only direct sink->source routes. */
+	if (pad0 != RCAR_CSI2_SINK)
+		return false;
+
+	/* Get the frame description: already validate at 'bound' time. */
+	rcsi2_get_remote_frame_desc(priv, &fd);
+	for (i = 0; i < fd.num_entries; i++) {
+		struct v4l2_mbus_frame_desc_entry *entry = &fd.entry[i];
+		int source_pad = rcsi2_vc_to_pad(entry->bus.csi2.channel);
+
+		if (source_pad < 0) {
+			dev_err(priv->dev, "Virtual Channel out of range: %u\n",
+				entry->bus.csi2.channel);
+			return false;
+		}
+
+		if (source_pad == pad1)
+			return true;
+	}
+
+	return false;
+}
+
 static const struct media_entity_operations rcar_csi2_entity_ops = {
+	.has_route = rcar_csi2_has_route,
 	.link_validate = v4l2_subdev_link_validate,
 };
 
