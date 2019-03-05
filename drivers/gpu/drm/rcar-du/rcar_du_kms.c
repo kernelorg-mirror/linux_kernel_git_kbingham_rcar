@@ -23,6 +23,7 @@
 #include "rcar_du_crtc.h"
 #include "rcar_du_drv.h"
 #include "rcar_du_encoder.h"
+#include "rcar_du_group.h"
 #include "rcar_du_kms.h"
 #include "rcar_du_regs.h"
 #include "rcar_du_vsp.h"
@@ -540,10 +541,6 @@ error:
 
 int rcar_du_modeset_init(struct rcar_du_device *rcdu)
 {
-	static const unsigned int mmio_offsets[] = {
-		DU0_REG_OFFSET, DU2_REG_OFFSET
-	};
-
 	struct drm_device *dev = rcdu->ddev;
 	struct drm_encoder *encoder;
 	struct rcar_du_group *rgrp;
@@ -590,25 +587,9 @@ int rcar_du_modeset_init(struct rcar_du_device *rcdu)
 
 	/* Initialize the groups. */
 	for_each_rcdu_group(rcdu, rgrp, i) {
-		mutex_init(&rgrp->lock);
-
-		rgrp->dev = rcdu;
-		rgrp->mmio_offset = mmio_offsets[i];
-		rgrp->index = i;
-		/* Extract the channel mask for this group only. */
-		rgrp->channels_mask = (rcdu->info->channels_mask >> (2 * i))
-				   & GENMASK(1, 0);
-		rgrp->num_crtcs = hweight8(rgrp->channels_mask);
-
-		/*
-		 * If we have more than one CRTCs in this group pre-associate
-		 * the low-order planes with CRTC 0 and the high-order planes
-		 * with CRTC 1 to minimize flicker occurring when the
-		 * association is changed.
-		 */
-		rgrp->dptsr_planes = rgrp->num_crtcs > 1
-				   ? (rcdu->info->gen >= 3 ? 0x04 : 0xf0)
-				   : 0;
+		ret = rcar_du_group_init(rcdu, rgrp, i);
+		if (ret < 0)
+			return ret;
 
 		if (!rcar_du_has(rcdu, RCAR_DU_FEATURE_VSP1_SOURCE)) {
 			ret = rcar_du_planes_init(rgrp);

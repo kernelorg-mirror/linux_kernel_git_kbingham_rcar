@@ -12,12 +12,15 @@
 
 #include <linux/mutex.h>
 
+#include <drm/drm_atomic.h>
+
 #include "rcar_du_plane.h"
 
 struct rcar_du_device;
 
 /*
  * struct rcar_du_group - CRTCs and planes group
+ * @private: The base drm private object
  * @dev: the DU device
  * @mmio_offset: registers offset in the device memory map
  * @index: group index
@@ -32,6 +35,8 @@ struct rcar_du_device;
  * @need_restart: the group needs to be restarted due to a configuration change
  */
 struct rcar_du_group {
+	struct drm_private_obj private;
+
 	struct rcar_du_device *dev;
 	unsigned int mmio_offset;
 	unsigned int index;
@@ -49,6 +54,19 @@ struct rcar_du_group {
 	bool need_restart;
 };
 
+#define to_rcar_group(s) container_of(s, struct rcar_du_group, private)
+
+/**
+ * struct rcar_du_group_state - Driver-specific group state
+ * @state: base DRM private state
+ */
+struct rcar_du_group_state {
+	struct drm_private_state state;
+};
+
+#define to_rcar_group_state(s) \
+	container_of(s, struct rcar_du_group_state, state)
+
 u32 rcar_du_group_read(struct rcar_du_group *rgrp, u32 reg);
 void rcar_du_group_write(struct rcar_du_group *rgrp, u32 reg, u32 data);
 
@@ -59,5 +77,9 @@ void rcar_du_group_restart(struct rcar_du_group *rgrp);
 int rcar_du_group_set_routing(struct rcar_du_group *rgrp);
 
 int rcar_du_set_dpad0_vsp1_routing(struct rcar_du_device *rcdu);
+
+int rcar_du_group_init(struct rcar_du_device *rcdu, struct rcar_du_group *rgrp,
+		       unsigned int index);
+void rcar_du_group_cleanup(struct rcar_du_group *rgrp);
 
 #endif /* __RCAR_DU_GROUP_H__ */
