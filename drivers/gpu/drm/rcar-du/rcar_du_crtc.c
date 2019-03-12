@@ -528,12 +528,10 @@ static int rcar_du_crtc_exit_standby(struct rcar_du_crtc *rcrtc)
 		return ret;
 
 	ret = clk_prepare_enable(rcrtc->extclock);
-	if (ret < 0)
-		goto error_clock;
-
-	ret = rcar_du_group_get(rcrtc->group);
-	if (ret < 0)
-		goto error_group;
+	if (ret < 0) {
+		clk_disable_unprepare(rcrtc->clock);
+		return ret;
+	}
 
 	/* Set display off and background to black. */
 	rcar_du_crtc_write(rcrtc, DOOR, DOOR_RGB(0, 0, 0));
@@ -543,18 +541,10 @@ static int rcar_du_crtc_exit_standby(struct rcar_du_crtc *rcrtc)
 	rcar_du_group_write(rcrtc->group, rcrtc->index % 2 ? DS2PR : DS1PR, 0);
 
 	return 0;
-
-error_group:
-	clk_disable_unprepare(rcrtc->extclock);
-error_clock:
-	clk_disable_unprepare(rcrtc->clock);
-	return ret;
 }
 
 static void rcar_du_crtc_enter_standby(struct rcar_du_crtc *rcrtc)
 {
-	rcar_du_group_put(rcrtc->group);
-
 	clk_disable_unprepare(rcrtc->extclock);
 	clk_disable_unprepare(rcrtc->clock);
 }
