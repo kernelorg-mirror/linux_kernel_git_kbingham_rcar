@@ -24,6 +24,7 @@
  */
 
 #include <linux/clk.h>
+#include <linux/err.h>
 #include <linux/io.h>
 
 #include <drm/drm_atomic.h>
@@ -170,38 +171,6 @@ static void rcar_du_group_setup(struct rcar_du_group *rgrp)
 	rcar_du_group_write(rgrp, DPTSR, (rgrp->dptsr_planes << 16) |
 			    rgrp->dptsr_planes);
 	mutex_unlock(&rgrp->lock);
-}
-
-/*
- * rcar_du_group_get - Acquire a reference to the DU channels group
- *
- * Acquiring the first reference setups core registers. A reference must be held
- * before accessing any hardware registers.
- *
- * This function must be called with the DRM mode_config lock held.
- *
- * Return 0 in case of success or a negative error code otherwise.
- */
-int rcar_du_group_get(struct rcar_du_group *rgrp)
-{
-	if (rgrp->use_count)
-		goto done;
-
-	rcar_du_group_setup(rgrp);
-
-done:
-	rgrp->use_count++;
-	return 0;
-}
-
-/*
- * rcar_du_group_put - Release a reference to the DU
- *
- * This function must be called with the DRM mode_config lock held.
- */
-void rcar_du_group_put(struct rcar_du_group *rgrp)
-{
-	--rgrp->use_count;
 }
 
 static void __rcar_du_group_start_stop(struct rcar_du_group *rgrp, bool start)
@@ -383,6 +352,74 @@ static const struct drm_private_state_funcs rcar_du_group_state_funcs = {
 	.atomic_duplicate_state = rcar_du_group_atomic_duplicate_state,
 	.atomic_destroy_state = rcar_du_group_atomic_destroy_state,
 };
+
+#define for_each_oldnew_group_in_state(__state, __obj, __old_state, __new_state, __i) \
+	for_each_oldnew_private_obj_in_state((__state), (__obj), (__old_state), (__new_state), (__i)) \
+		for_each_if((__obj)->funcs == &rcar_du_group_state_funcs)
+
+static struct rcar_du_group_state *
+rcar_du_get_group_state(struct drm_atomic_state *state,
+			struct rcar_du_group *rgrp)
+{
+	struct drm_private_state *pstate;
+
+	pstate = drm_atomic_get_private_obj_state(state, &rgrp->private);
+	if (IS_ERR(pstate))
+		return ERR_CAST(pstate);
+
+	return to_rcar_group_state(pstate);
+}
+
+int rcar_du_group_atomic_check(struct drm_device *dev,
+			       struct drm_atomic_state *state)
+{
+	struct drm_crtc *crtc;
+	struct drm_crtc_state *crtc_state;
+	unsigned int i;
+
+	for_each_new_crtc_in_state(state, crtc, crtc_state, i) {
+		struct rcar_du_crtc *rcrtc = to_rcar_crtc(crtc);
+		struct rcar_du_group_state *rstate;
+
+		if (crtc_state->active_changed || crtc_state->mode_changed) {
+			rstate = rcar_du_get_group_state(state, rcrtc->group);
+			if (IS_ERR(rstate))
+				return PTR_ERR(rstate);
+
+			if (crtc_state->active)
+				rstate->use_count++;
+		}
+	}
+
+	return 0;
+}
+
+int rcar_du_group_atomic_pre_commit(struct drm_device *dev,
+				    struct drm_atomic_state *state)
+{
+	struct drm_private_state *old_pstate, *new_pstate;
+	struct drm_private_obj *obj;
+	unsigned int i;
+
+	for_each_oldnew_group_in_state(state, obj, old_pstate, new_pstate, i) {
+		struct rcar_du_group *rgrp = to_rcar_group(obj);
+		struct rcar_du_group_state *old_state, *new_state;
+
+		old_state = to_rcar_group_state(old_pstate);
+		new_state = to_rcar_group_state(new_pstate);
+
+		if (!old_state->use_count && new_state->use_count)
+			rcar_du_group_setup(rgrp);
+	}
+
+	return 0;
+}
+
+int rcar_du_group_atomic_post_commit(struct drm_device *dev,
+				     struct drm_atomic_state *state)
+{
+	return 0;
+}
 
 /*
  * rcar_du_group_init - Initialise and reset a group object
