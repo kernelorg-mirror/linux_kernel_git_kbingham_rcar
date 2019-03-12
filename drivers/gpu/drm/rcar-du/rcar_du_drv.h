@@ -96,6 +96,11 @@ struct rcar_du_device {
 	unsigned int vspd1_sink;
 };
 
+#define for_each_rcdu_group(__rcdu, __group, __i) \
+	for ((__i) = 0; (__group = &(rcdu)->groups[__i]), \
+	     (__i) < DIV_ROUND_UP((rcdu)->num_crtcs, 2); \
+	     __i++)
+
 static inline bool rcar_du_has(struct rcar_du_device *rcdu,
 			       unsigned int feature)
 {
