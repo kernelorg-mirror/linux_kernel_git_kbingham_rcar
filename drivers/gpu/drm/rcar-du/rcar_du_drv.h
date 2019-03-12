@@ -104,6 +104,11 @@ static inline struct rcar_du_device *to_rcar_du_device(struct drm_device *dev)
 	return container_of(dev, struct rcar_du_device, ddev);
 }
 
+#define for_each_rcdu_group(__rcdu, __group, __i) \
+	for ((__i) = 0, (__group) = &(__rcdu)->groups[0]; \
+	     (__i) < DIV_ROUND_UP((__rcdu)->num_crtcs, 2); \
+	     __i++, __group++)
+
 static inline bool rcar_du_has(struct rcar_du_device *rcdu,
 			       unsigned int feature)
 {
