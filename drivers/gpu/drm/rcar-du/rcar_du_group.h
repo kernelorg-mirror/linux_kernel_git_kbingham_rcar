@@ -82,6 +82,12 @@ int rcar_du_set_dpad0_vsp1_routing(struct rcar_du_device *rcdu);
 struct rcar_du_group_state *
 rcar_du_get_group_state(struct drm_atomic_state *state,
 			struct rcar_du_group *rgrp);
+struct rcar_du_group_state *
+rcar_du_get_old_group_state(struct drm_atomic_state *state,
+			    struct rcar_du_group *rgrp);
+struct rcar_du_group_state *
+rcar_du_get_new_group_state(struct drm_atomic_state *state,
+			    struct rcar_du_group *rgrp);
 int rcar_du_group_atomic_check(struct drm_device *dev,
 			       struct drm_atomic_state *state);
 int rcar_du_group_atomic_pre_commit(struct drm_device *dev,

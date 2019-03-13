@@ -398,6 +398,58 @@ rcar_du_get_group_state(struct drm_atomic_state *state,
 	return to_rcar_group_state(pstate);
 }
 
+/**
+ * rcar_du_get_old_group_state - get old group state, if it exists
+ * @state: global atomic state object
+ * @rgrp: group to grab
+ *
+ * This function returns the old group state for the given group, or
+ * NULL if the group is not part of the global atomic state.
+ */
+struct rcar_du_group_state *
+rcar_du_get_old_group_state(struct drm_atomic_state *state,
+			    struct rcar_du_group *rgrp)
+{
+	struct drm_private_obj *obj = &rgrp->private;
+	struct drm_private_state *pstate;
+	unsigned int i;
+
+	for (i = 0; i < state->num_private_objs; i++) {
+		if (obj == state->private_objs[i].ptr) {
+			pstate = state->private_objs[i].old_state;
+			return to_rcar_group_state(pstate);
+		}
+	}
+
+	return NULL;
+}
+
+/**
+ * rcar_du_get_new_group_state - get new group state, if it exists
+ * @state: global atomic state object
+ * @rgrp: group to grab
+ *
+ * This function returns the new group state for the given group, or
+ * NULL if the group is not part of the global atomic state.
+ */
+struct rcar_du_group_state *
+rcar_du_get_new_group_state(struct drm_atomic_state *state,
+			    struct rcar_du_group *rgrp)
+{
+	struct drm_private_obj *obj = &rgrp->private;
+	struct drm_private_state *pstate;
+	unsigned int i;
+
+	for (i = 0; i < state->num_private_objs; i++) {
+		if (obj == state->private_objs[i].ptr) {
+			pstate = state->private_objs[i].new_state;
+			return to_rcar_group_state(pstate);
+		}
+	}
+
+	return NULL;
+}
+
 int rcar_du_group_atomic_check(struct drm_device *dev,
 			       struct drm_atomic_state *state)
 {
