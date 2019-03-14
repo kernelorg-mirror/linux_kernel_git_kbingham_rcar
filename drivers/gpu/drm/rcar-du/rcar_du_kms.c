@@ -315,6 +315,8 @@ static void rcar_du_atomic_commit_tail(struct drm_atomic_state *old_state)
 	struct drm_crtc *crtc;
 	unsigned int i;
 
+	pr_err("%s Enter\n", __func__);
+
 	/*
 	 * Store RGB routing to DPAD0 and DPAD1, the hardware will be configured
 	 * when starting the CRTCs.
@@ -334,13 +336,17 @@ static void rcar_du_atomic_commit_tail(struct drm_atomic_state *old_state)
 	}
 
 	/* Apply the atomic update. */
+	pr_err("drm_atomic_helper_commit_modeset_disables\n");
 	rcar_du_crtc_atomic_exit_standby(dev, old_state);
 	rcar_du_group_atomic_pre_commit(dev, old_state);
 
 	drm_atomic_helper_commit_modeset_disables(dev, old_state);
+	pr_err("drm_atomic_helper_commit_planes\n");
 	drm_atomic_helper_commit_planes(dev, old_state,
 					DRM_PLANE_COMMIT_ACTIVE_ONLY);
+	pr_err("drm_atomic_helper_commit_modeset_enables\n");
 	drm_atomic_helper_commit_modeset_enables(dev, old_state);
+	pr_err("DrmHelpers done\n");
 
 	rcar_du_group_atomic_post_commit(dev, old_state);
 	rcar_du_crtc_atomic_enter_standby(dev, old_state);
@@ -349,6 +355,8 @@ static void rcar_du_atomic_commit_tail(struct drm_atomic_state *old_state)
 	drm_atomic_helper_wait_for_flip_done(dev, old_state);
 
 	drm_atomic_helper_cleanup_planes(dev, old_state);
+
+	pr_err("%s Exit\n", __func__);
 }
 
 /* -----------------------------------------------------------------------------

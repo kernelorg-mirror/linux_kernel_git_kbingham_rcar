@@ -555,6 +555,8 @@ void __rcar_du_plane_setup(struct rcar_du_group *rgrp,
 	if (state->source == RCAR_DU_PLANE_VSPD1) {
 		unsigned int vspd1_sink = rgrp->index ? 2 : 0;
 
+		pr_err("Set vsp1_routing...?\n");
+
 		if (rcdu->vspd1_sink != vspd1_sink) {
 			rcdu->vspd1_sink = vspd1_sink;
 			rcar_du_set_dpad0_vsp1_routing(rcdu);
@@ -611,6 +613,8 @@ static int rcar_du_plane_atomic_check(struct drm_plane *plane,
 {
 	struct rcar_du_plane_state *rstate = to_rcar_plane_state(state);
 
+	pr_err("%s\n", __FUNCTION__);
+
 	return __rcar_du_plane_atomic_check(plane, state, &rstate->format);
 }
 
@@ -620,6 +624,8 @@ static void rcar_du_plane_atomic_update(struct drm_plane *plane,
 	struct rcar_du_plane *rplane = to_rcar_plane(plane);
 	struct rcar_du_plane_state *old_rstate;
 	struct rcar_du_plane_state *new_rstate;
+
+	pr_err("%s\n", __FUNCTION__);
 
 	if (!plane->state->visible)
 		return;

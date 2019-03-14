@@ -42,6 +42,8 @@ u32 rcar_du_group_read(struct rcar_du_group *rgrp, u32 reg)
 
 void rcar_du_group_write(struct rcar_du_group *rgrp, u32 reg, u32 data)
 {
+	pr_err("Group %d: 0x%08x 0x%08x\n", rgrp->index, reg, data);
+
 	rcar_du_write(rgrp->dev, rgrp->mmio_offset + reg, data);
 }
 
@@ -141,6 +143,8 @@ static void rcar_du_group_setup(struct rcar_du_group *rgrp)
 {
 	struct rcar_du_device *rcdu = rgrp->dev;
 
+	pr_err(" ***** Group Setup\n");
+
 	/* Enable extended features */
 	rcar_du_group_write(rgrp, DEFR, DEFR_CODE | DEFR_DEFE);
 	if (rcdu->info->gen < 3) {
@@ -164,6 +168,8 @@ static void rcar_du_group_setup(struct rcar_du_group *rgrp)
 	 * Use DS1PR and DS2PR to configure planes priorities and connects the
 	 * superposition 0 to DU0 pins. DU1 pins will be configured dynamically.
 	 */
+	pr_err(" DORCR: 0x%08x", DORCR_PG1D_DS1 | DORCR_DPRS);
+
 	rcar_du_group_write(rgrp, DORCR, DORCR_PG1D_DS1 | DORCR_DPRS);
 
 	/* Apply planes to CRTCs association. */
@@ -198,6 +204,9 @@ static void __rcar_du_group_start_stop(struct rcar_du_group *rgrp, bool start)
 
 void rcar_du_group_start_stop(struct rcar_du_group *rgrp, bool start)
 {
+
+	pr_err("%s : %s\n", __func__, start ? "Start" : "Stop");
+
 	/*
 	 * Many of the configuration bits are only updated when the display
 	 * reset (DRES) bit in DSYSR is set to 1, disabling *both* CRTCs. Some
@@ -223,6 +232,8 @@ void rcar_du_group_start_stop(struct rcar_du_group *rgrp, bool start)
 void rcar_du_group_restart(struct rcar_du_group *rgrp)
 {
 	rgrp->need_restart = false;
+
+	pr_err("%s\n", __func__);
 
 	__rcar_du_group_start_stop(rgrp, false);
 	__rcar_du_group_start_stop(rgrp, true);
@@ -305,6 +316,10 @@ int rcar_du_group_set_routing(struct rcar_du_group *rgrp)
 {
 	struct rcar_du_device *rcdu = rgrp->dev;
 	u32 dorcr = rcar_du_group_read(rgrp, DORCR);
+
+	pr_err("rcar_du_group_set_routing\n");
+
+	pr_err("READ DORCR 0x%08x\n", dorcr);
 
 	dorcr &= ~(DORCR_PG2T | DORCR_DK2S | DORCR_PG2D_MASK);
 

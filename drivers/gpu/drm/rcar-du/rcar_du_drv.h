@@ -118,8 +118,13 @@ static inline u32 rcar_du_read(struct rcar_du_device *rcdu, u32 reg)
 	return ioread32(rcdu->mmio + reg);
 }
 
+char *rcar_du_regname(u32 reg);
+
 static inline void rcar_du_write(struct rcar_du_device *rcdu, u32 reg, u32 data)
 {
+	if (!((reg & 0xFFFF) == 0x0000000c))
+		pr_err("du_write: 0x%08x 0x%08x %s\n", reg, data, rcar_du_regname(reg));
+
 	iowrite32(data, rcdu->mmio + reg);
 }
 

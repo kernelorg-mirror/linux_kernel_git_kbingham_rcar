@@ -340,6 +340,8 @@ static void rcar_du_crtc_update_planes(struct rcar_du_crtc *rcrtc)
 	unsigned int i;
 	u32 dspr = 0;
 
+	pr_err("UpdatePlanes - calculating");
+
 	for (i = 0; i < rcrtc->group->num_planes; ++i) {
 		struct rcar_du_plane *plane = &rcrtc->group->planes[i];
 		unsigned int j;
@@ -480,6 +482,8 @@ static void rcar_du_crtc_wait_page_flip(struct rcar_du_crtc *rcrtc)
 
 static void rcar_du_crtc_setup(struct rcar_du_crtc *rcrtc)
 {
+	pr_err("**** CRTC_SETUP %d\n", rcrtc->vblank_count);
+
 	/* Configure display timings and output routing */
 	rcar_du_crtc_set_display_timing(rcrtc);
 	rcar_du_group_set_routing(rcrtc->group);
@@ -504,6 +508,8 @@ static int rcar_du_crtc_enable(struct rcar_du_crtc *rcrtc)
 	if (ret < 0)
 		goto error_clock;
 
+	pr_err("Clks prepared\n");
+
 	/* Set display off and background to black. */
 	rcar_du_crtc_write(rcrtc, DOOR, DOOR_RGB(0, 0, 0));
 	rcar_du_crtc_write(rcrtc, BPOR, BPOR_RGB(0, 0, 0));
@@ -520,6 +526,8 @@ error_clock:
 
 static void rcar_du_crtc_disable(struct rcar_du_crtc *rcrtc)
 {
+	pr_err("Disabled %s\n", rcrtc->crtc.name);
+
 	clk_disable_unprepare(rcrtc->extclock);
 	clk_disable_unprepare(rcrtc->clock);
 }
@@ -527,6 +535,8 @@ static void rcar_du_crtc_disable(struct rcar_du_crtc *rcrtc)
 static void rcar_du_crtc_start(struct rcar_du_crtc *rcrtc)
 {
 	bool interlaced;
+
+	pr_err("%s\n", __func__);
 
 	/*
 	 * Select master sync mode. This enables display operation in master
@@ -722,6 +732,8 @@ static void rcar_du_crtc_atomic_disable(struct drm_crtc *crtc,
 	struct rcar_du_crtc_state *rstate = to_rcar_crtc_state(old_state);
 	struct rcar_du_device *rcdu = rcrtc->dev;
 
+	pr_err("%s\n", __func__);
+
 	rcar_du_crtc_stop(rcrtc);
 
 	if (rcdu->info->lvds_clk_mask & BIT(rcrtc->index) &&
@@ -749,6 +761,8 @@ static void rcar_du_crtc_atomic_begin(struct drm_crtc *crtc,
 {
 	struct rcar_du_crtc *rcrtc = to_rcar_crtc(crtc);
 
+	pr_err("%s\n", __func__);
+
 	WARN_ON(!crtc->state->enable);
 
 	if (rcar_du_has(rcrtc->dev, RCAR_DU_FEATURE_VSP1_SOURCE))
@@ -762,6 +776,8 @@ static void rcar_du_crtc_atomic_flush(struct drm_crtc *crtc,
 	struct drm_device *dev = rcrtc->crtc.dev;
 	unsigned long flags;
 
+	pr_err("%s\n", __func__);
+
 	rcar_du_crtc_update_planes(rcrtc);
 
 	if (crtc->state->event) {
@@ -772,6 +788,8 @@ static void rcar_du_crtc_atomic_flush(struct drm_crtc *crtc,
 		crtc->state->event = NULL;
 		spin_unlock_irqrestore(&dev->event_lock, flags);
 	}
+
+	pr_err("rcar_du_vsp_atomic_flush\n");
 
 	if (rcar_du_has(rcrtc->dev, RCAR_DU_FEATURE_VSP1_SOURCE))
 		rcar_du_vsp_atomic_flush(rcrtc);
