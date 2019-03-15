@@ -372,7 +372,20 @@ static const struct drm_private_state_funcs rcar_du_group_state_funcs = {
 	for_each_oldnew_private_obj_in_state((__state), (__obj), (__old_state), (__new_state), (__i)) \
 		for_each_if((__obj)->funcs == &rcar_du_group_state_funcs)
 
-static struct rcar_du_group_state *
+/**
+ * rcar_du_get_group_state - get group state
+ * @state: global atomic state object
+ * @rgrp: group to get state object for
+ *
+ * This function returns the group state for the given group, allocating it if
+ * needed. The drm_atomic_get_private_obj_state will also grab the relevant
+ * private object lock to make sure that the state is consistent.
+ *
+ * Returns:
+ *
+ * Either the allocated state or the error code encoded into a pointer.
+ */
+struct rcar_du_group_state *
 rcar_du_get_group_state(struct drm_atomic_state *state,
 			struct rcar_du_group *rgrp)
 {
