@@ -60,11 +60,13 @@ struct rcar_du_group {
  * struct rcar_du_group_state - Driver-specific group state
  * @state: base DRM private state
  * @enabled: true if at least one CRTC in the group is enabled
+ * @dpad_routing_changed: set if CRTC to DPAD output routing has changed
  */
 struct rcar_du_group_state {
 	struct drm_private_state state;
 
 	bool enabled;
+	bool dpad_routing_changed;
 };
 
 #define to_rcar_group_state(s) \
@@ -75,7 +77,6 @@ void rcar_du_group_write(struct rcar_du_group *rgrp, u32 reg, u32 data);
 
 void rcar_du_group_start_stop(struct rcar_du_group *rgrp, bool start);
 void rcar_du_group_restart(struct rcar_du_group *rgrp);
-int rcar_du_group_set_routing(struct rcar_du_group *rgrp);
 
 int rcar_du_set_dpad0_vsp1_routing(struct rcar_du_device *rcdu);
 

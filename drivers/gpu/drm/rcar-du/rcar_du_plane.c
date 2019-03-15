@@ -552,14 +552,8 @@ void __rcar_du_plane_setup(struct rcar_du_group *rgrp,
 	if (rcdu->info->gen < 3)
 		rcar_du_plane_setup_scanout(rgrp, state);
 
-	if (state->source == RCAR_DU_PLANE_VSPD1) {
-		unsigned int vspd1_sink = rgrp->index ? 2 : 0;
-
-		if (rcdu->vspd1_sink != vspd1_sink) {
-			rcdu->vspd1_sink = vspd1_sink;
-			rcar_du_set_dpad0_vsp1_routing(rcdu);
-		}
-	}
+	if (state->source == RCAR_DU_PLANE_VSPD1)
+		rcdu->vspd1_sink = rgrp->index ? 2 : 0;
 }
 
 int __rcar_du_plane_atomic_check(struct drm_plane *plane,

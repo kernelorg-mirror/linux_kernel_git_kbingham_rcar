@@ -446,14 +446,14 @@ static void rcar_du_atomic_commit_tail(struct drm_atomic_state *old_state)
 	struct rcar_du_device *rcdu = to_rcar_du_device(dev);
 	struct drm_crtc_state *crtc_state;
 	struct drm_crtc *crtc;
+	unsigned int vspd1_sink = rcdu->vspd1_sink;
+	unsigned int dpad0_source = rcdu->dpad0_source;
 	unsigned int i;
 
 	/*
-	 * Store RGB routing to DPAD0 and DPAD1, the hardware will be configured
-	 * when starting the CRTCs.
+	 * Store RGB routing to DPAD0, the hardware will be configured when
+	 * setting up the groups.
 	 */
-	rcdu->dpad1_source = -1;
-
 	for_each_new_crtc_in_state(old_state, crtc, crtc_state, i) {
 		struct rcar_du_crtc_state *rcrtc_state =
 			to_rcar_crtc_state(crtc_state);
@@ -461,9 +461,6 @@ static void rcar_du_atomic_commit_tail(struct drm_atomic_state *old_state)
 
 		if (rcrtc_state->outputs & BIT(RCAR_DU_OUTPUT_DPAD0))
 			rcdu->dpad0_source = rcrtc->index;
-
-		if (rcrtc_state->outputs & BIT(RCAR_DU_OUTPUT_DPAD1))
-			rcdu->dpad1_source = rcrtc->index;
 	}
 
 	/* Apply the atomic update. */
@@ -474,6 +471,11 @@ static void rcar_du_atomic_commit_tail(struct drm_atomic_state *old_state)
 	rcar_du_crtc_atomic_modeset(dev, old_state);
 	drm_atomic_helper_commit_planes(dev, old_state,
 					DRM_PLANE_COMMIT_ACTIVE_ONLY);
+
+	if (rcdu->vspd1_sink != vspd1_sink ||
+	    rcdu->dpad0_source != dpad0_source)
+		rcar_du_set_dpad0_vsp1_routing(rcdu);
+
 	drm_atomic_helper_commit_modeset_enables(dev, old_state);
 
 	rcar_du_crtc_atomic_enter_standby(dev, old_state);

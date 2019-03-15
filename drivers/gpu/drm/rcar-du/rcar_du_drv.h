@@ -95,7 +95,6 @@ struct rcar_du_device {
 	} props;
 
 	unsigned int dpad0_source;
-	unsigned int dpad1_source;
 	unsigned int vspd1_sink;
 };
 

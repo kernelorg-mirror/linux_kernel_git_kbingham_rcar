@@ -747,9 +747,8 @@ int rcar_du_crtc_atomic_modeset(struct drm_device *dev,
 		    !crtc_state->active)
 			continue;
 
-		/* Configure display timings and output routing. */
+		/* Configure display timings. */
 		rcar_du_crtc_set_display_timing(rcrtc);
-		rcar_du_group_set_routing(rcrtc->group);
 
 		if (rcar_du_has(rcrtc->dev, RCAR_DU_FEATURE_VSP1_SOURCE))
 			rcar_du_vsp_modeset(rcrtc);
