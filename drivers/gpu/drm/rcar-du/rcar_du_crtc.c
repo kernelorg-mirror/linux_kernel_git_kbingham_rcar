@@ -486,7 +486,6 @@ static void rcar_du_crtc_setup(struct rcar_du_crtc *rcrtc)
 
 	/* Configure display timings and output routing */
 	rcar_du_crtc_set_display_timing(rcrtc);
-	rcar_du_group_set_routing(rcrtc->group);
 
 	/* Enable the VSP compositor. */
 	if (rcar_du_has(rcrtc->dev, RCAR_DU_FEATURE_VSP1_SOURCE))

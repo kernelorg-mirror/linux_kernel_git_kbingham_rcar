@@ -57,11 +57,13 @@ struct rcar_du_group {
 /**
  * struct rcar_du_group_state - Driver-specific group state
  * @state: base DRM private state
+ * @active_changed: set if the active flag is toggled in any CRTC in the group
  * @use_count: number of users of the group
  */
 struct rcar_du_group_state {
 	struct drm_private_state state;
 
+	bool active_changed;
 	unsigned int use_count;
 };
 

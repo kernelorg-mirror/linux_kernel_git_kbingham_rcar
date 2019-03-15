@@ -416,6 +416,9 @@ int rcar_du_group_atomic_check(struct drm_device *dev,
 
 			if (crtc_state->active)
 				rstate->use_count++;
+
+			if (crtc_state->active_changed)
+				rstate->active_changed = true;
 		}
 	}
 
@@ -438,6 +441,16 @@ int rcar_du_group_atomic_pre_commit(struct drm_device *dev,
 
 		if (!old_state->use_count && new_state->use_count)
 			rcar_du_group_setup(rgrp);
+
+		/*
+		 * todo: The rcar_du_group_set_routing() is now called before
+		 * rcar_du_crtc_setup(), which means that in particular the
+		 * display has not been configured to be off with a black
+		 * background. This will require some further testing with a
+		 * panel display and multiple CRTCs being used simultaneously.
+		 */
+		if (new_state->active_changed && new_state->use_count)
+			rcar_du_group_set_routing(rgrp);
 	}
 
 	return 0;
