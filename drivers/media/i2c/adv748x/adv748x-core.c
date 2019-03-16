@@ -305,22 +305,34 @@ static int adv748x_power_down_tx(struct adv748x_csi2 *tx)
 
 int adv748x_tx_power(struct adv748x_csi2 *tx, bool on)
 {
-	int val;
+	u8 io10_mask = ADV748X_IO_10_CSI1_EN | ADV748X_IO_10_CSI4_EN |
+		       ADV748X_IO_10_CSI4_IN_SEL_AFE;
+	struct adv748x_state *state = tx->state;
+	int ret;
 
 	if (!is_tx_enabled(tx))
 		return 0;
 
-	val = tx_read(tx, ADV748X_CSI_FS_AS_LS);
-	if (val < 0)
-		return val;
+	ret = tx_read(tx, ADV748X_CSI_FS_AS_LS);
+	if (ret < 0)
+		return ret;
 
 	/*
 	 * This test against BIT(6) is not documented by the datasheet, but was
 	 * specified in the downstream driver.
 	 * Track with a WARN_ONCE to determine if it is ever set by HW.
 	 */
-	WARN_ONCE((on && val & ADV748X_CSI_FS_AS_LS_UNKNOWN),
+	WARN_ONCE((on && ret & ADV748X_CSI_FS_AS_LS_UNKNOWN),
 			"Enabling with unknown bit set");
+
+	/* Configure TXA routing. */
+	if (on) {
+		ret = io_clrset(state, ADV748X_IO_10, io10_mask,
+				state->csi4_in_sel);
+		if (ret)
+			return ret;
+	}
+
 
 	return on ? adv748x_power_up_tx(tx) : adv748x_power_down_tx(tx);
 }
@@ -337,10 +349,7 @@ static int adv748x_link_setup(struct media_entity *entity,
 	struct adv748x_state *state = v4l2_get_subdevdata(sd);
 	struct adv748x_csi2 *tx = adv748x_sd_to_csi2(sd);
 	bool enable = flags & MEDIA_LNK_FL_ENABLED;
-	u8 io10_mask = ADV748X_IO_10_CSI1_EN |
-		       ADV748X_IO_10_CSI4_EN |
-		       ADV748X_IO_10_CSI4_IN_SEL_AFE;
-	u8 io10 = 0;
+	u8 csi4_in_sel = 0;
 
 	/* Refuse to enable multiple links to the same TX at the same time. */
 	if (enable && tx->src)
@@ -356,17 +365,19 @@ static int adv748x_link_setup(struct media_entity *entity,
 
 	if (state->afe.tx) {
 		/* AFE Requires TXA enabled, even when output to TXB */
-		io10 |= ADV748X_IO_10_CSI4_EN;
+		csi4_in_sel |= ADV748X_IO_10_CSI4_EN;
 		if (is_txa(tx))
-			io10 |= ADV748X_IO_10_CSI4_IN_SEL_AFE;
+			csi4_in_sel |= ADV748X_IO_10_CSI4_IN_SEL_AFE;
 		else
-			io10 |= ADV748X_IO_10_CSI1_EN;
+			csi4_in_sel |= ADV748X_IO_10_CSI1_EN;
 	}
 
 	if (state->hdmi.tx)
-		io10 |= ADV748X_IO_10_CSI4_EN;
+		csi4_in_sel |= ADV748X_IO_10_CSI4_EN;
 
-	return io_clrset(state, ADV748X_IO_10, io10_mask, io10);
+	state->csi4_in_sel = csi4_in_sel;
+
+	return 0;
 }
 
 static const struct media_entity_operations adv748x_tx_media_ops = {
@@ -482,7 +493,6 @@ static int adv748x_sw_reset(struct adv748x_state *state)
 static int adv748x_reset(struct adv748x_state *state)
 {
 	int ret;
-	u8 regval = 0;
 
 	ret = adv748x_sw_reset(state);
 	if (ret < 0)
@@ -501,6 +511,12 @@ static int adv748x_reset(struct adv748x_state *state)
 	if (ret)
 		return ret;
 
+	/* Conditionally enable TXa and TXb. */
+	if (is_tx_enabled(&state->txa))
+		state->csi4_in_sel |= ADV748X_IO_10_CSI4_EN;
+	if (is_tx_enabled(&state->txb))
+		state->csi4_in_sel |= ADV748X_IO_10_CSI1_EN;
+
 	/* Reset TXA and TXB */
 	adv748x_tx_power(&state->txa, 1);
 	adv748x_tx_power(&state->txa, 0);
@@ -509,13 +525,6 @@ static int adv748x_reset(struct adv748x_state *state)
 
 	/* Disable chip powerdown & Enable HDMI Rx block */
 	io_write(state, ADV748X_IO_PD, ADV748X_IO_PD_RX_EN);
-
-	/* Conditionally enable TXa and TXb. */
-	if (is_tx_enabled(&state->txa))
-		regval |= ADV748X_IO_10_CSI4_EN;
-	if (is_tx_enabled(&state->txb))
-		regval |= ADV748X_IO_10_CSI1_EN;
-	io_write(state, ADV748X_IO_10, regval);
 
 	/* Use vid_std and v_freq as freerun resolution for CP */
 	cp_clrset(state, ADV748X_CP_CLMP_POS, ADV748X_CP_CLMP_POS_DIS_AUTO,
