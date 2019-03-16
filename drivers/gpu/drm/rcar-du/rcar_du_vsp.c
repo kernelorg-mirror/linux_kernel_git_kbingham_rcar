@@ -88,7 +88,7 @@ void rcar_du_vsp_enable(struct rcar_du_crtc *crtc)
 	 *
 	 * TODO: Check whether this is still needed on Gen3.
 	 */
-	crtc->group->need_restart = true;
+	to_rcar_group_state(crtc->group->private.state)->need_restart = true;
 
 	vsp1_du_setup_lif(crtc->vsp->vsp, crtc->vsp_pipe, &cfg);
 }

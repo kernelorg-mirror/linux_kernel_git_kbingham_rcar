@@ -229,9 +229,11 @@ void rcar_du_group_start_stop(struct rcar_du_group *rgrp, bool start)
 	}
 }
 
-void rcar_du_group_restart(struct rcar_du_group *rgrp)
+static void rcar_du_group_restart(struct rcar_du_group *rgrp,
+				  struct rcar_du_group_state *state)
 {
-	rgrp->need_restart = false;
+
+	state->need_restart = false;
 
 	pr_err("%s\n", __func__);
 
@@ -511,6 +513,21 @@ int rcar_du_group_atomic_pre_commit(struct drm_device *dev,
 int rcar_du_group_atomic_post_commit(struct drm_device *dev,
 				     struct drm_atomic_state *state)
 {
+	struct drm_private_state *old_pstate, *new_pstate;
+	struct drm_private_obj *obj;
+	unsigned int i;
+
+	for_each_oldnew_group_in_state(state, obj, old_pstate, new_pstate, i) {
+		struct rcar_du_group *rgrp = to_rcar_group(obj);
+		struct rcar_du_group_state *old_state, *new_state;
+
+		old_state = to_rcar_group_state(old_pstate);
+		new_state = to_rcar_group_state(new_pstate);
+
+		if (new_state->need_restart)
+			rcar_du_group_restart(rgrp, new_state);
+	}
+
 	return 0;
 }
 

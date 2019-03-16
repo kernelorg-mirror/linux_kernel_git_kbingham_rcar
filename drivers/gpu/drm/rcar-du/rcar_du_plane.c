@@ -624,6 +624,7 @@ static void rcar_du_plane_atomic_update(struct drm_plane *plane,
 	struct rcar_du_plane *rplane = to_rcar_plane(plane);
 	struct rcar_du_plane_state *old_rstate;
 	struct rcar_du_plane_state *new_rstate;
+	struct rcar_du_group_state *gstate;
 
 	pr_err("%s\n", __FUNCTION__);
 
@@ -642,10 +643,14 @@ static void rcar_du_plane_atomic_update(struct drm_plane *plane,
 	 */
 	old_rstate = to_rcar_plane_state(old_state);
 	new_rstate = to_rcar_plane_state(plane->state);
+	gstate = rcar_du_get_new_group_state(new_rstate->state.state,
+					     rplane->group);
+
 
 	if ((old_rstate->source == RCAR_DU_PLANE_MEMORY) !=
 	    (new_rstate->source == RCAR_DU_PLANE_MEMORY))
-		rplane->group->need_restart = true;
+		gstate->need_restart = true;
+
 }
 
 static const struct drm_plane_helper_funcs rcar_du_plane_helper_funcs = {

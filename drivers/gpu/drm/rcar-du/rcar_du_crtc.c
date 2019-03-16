@@ -333,6 +333,7 @@ static void rcar_du_crtc_update_planes(struct rcar_du_crtc *rcrtc)
 {
 	struct rcar_du_plane *planes[RCAR_DU_NUM_HW_PLANES];
 	struct rcar_du_device *rcdu = rcrtc->dev;
+	struct rcar_du_group_state *gstate;
 	unsigned int num_planes = 0;
 	unsigned int dptsr_planes;
 	unsigned int hwplanes = 0;
@@ -405,17 +406,16 @@ static void rcar_du_crtc_update_planes(struct rcar_du_crtc *rcrtc)
 		     : rcrtc->group->dptsr_planes & ~hwplanes;
 
 	if (dptsr_planes != rcrtc->group->dptsr_planes) {
+		gstate = rcar_du_get_new_group_state(rcrtc->crtc.state->state,
+						     rcrtc->group);
+
 		rcar_du_group_write(rcrtc->group, DPTSR,
 				    (dptsr_planes << 16) | dptsr_planes);
 		rcrtc->group->dptsr_planes = dptsr_planes;
 
 		if (rcrtc->group->used_crtcs)
-			rcar_du_group_restart(rcrtc->group);
+			gstate->need_restart = true;
 	}
-
-	/* Restart the group if plane sources have changed. */
-	if (rcrtc->group->need_restart)
-		rcar_du_group_restart(rcrtc->group);
 
 	mutex_unlock(&rcrtc->group->lock);
 
