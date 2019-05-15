@@ -665,6 +665,14 @@ int rcar_du_crtc_atomic_exit_standby(struct drm_device *dev,
 	for_each_new_crtc_in_state(state, crtc, crtc_state, i) {
 		struct rcar_du_crtc *rcrtc = to_rcar_crtc(crtc);
 
+		pr_err("ExitStandby: CRTC: %s active_changed %d active %d enable %d mode_changed %d needs_modeset %d\n",
+				crtc->name,
+				crtc_state->active_changed,
+				crtc_state->active,
+				crtc_state->enable,
+				crtc_state->mode_changed,
+				drm_atomic_crtc_needs_modeset(crtc_state));
+
 		if (crtc_state->active_changed && crtc_state->active) {
 			int ret = rcar_du_crtc_enable(rcrtc);
 
@@ -690,6 +698,14 @@ int rcar_du_crtc_atomic_enter_standby(struct drm_device *dev,
 
 	for_each_new_crtc_in_state(state, crtc, crtc_state, i) {
 		struct rcar_du_crtc *rcrtc = to_rcar_crtc(crtc);
+
+		pr_err("Enter Standby: CRTC: %s active_changed %d active %d enable %d mode_changed %d needs_modeset %d\n",
+				crtc->name,
+				crtc_state->active_changed,
+				crtc_state->active,
+				crtc_state->enable,
+				crtc_state->mode_changed,
+				drm_atomic_crtc_needs_modeset(crtc_state));
 
 		if (crtc_state->active_changed && !crtc_state->active)
 			rcar_du_crtc_disable(rcrtc);
