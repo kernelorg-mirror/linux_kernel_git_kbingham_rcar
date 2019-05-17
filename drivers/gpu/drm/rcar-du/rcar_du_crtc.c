@@ -662,6 +662,29 @@ static int rcar_du_crtc_atomic_check(struct drm_crtc *crtc,
 	return 0;
 }
 
+/*
+ * Put all CRTCs that have been deactivated by this commit in standby.
+ * This shall be called at the end of the commit tail handler as the
+ * last operation that touches the CRTC hardware.
+ */
+int rcar_du_crtc_atomic_modeset(struct drm_device *dev,
+				struct drm_atomic_state *state)
+{
+	struct drm_crtc *crtc;
+	struct drm_crtc_state *crtc_state;
+	unsigned int i;
+
+	for_each_new_crtc_in_state(state, crtc, crtc_state, i) {
+		struct rcar_du_crtc *rcrtc = to_rcar_crtc(crtc);
+
+		if ((crtc_state->active_changed && crtc_state->active)
+		    || drm_atomic_crtc_needs_modeset(crtc_state))
+			rcar_du_crtc_setup(rcrtc);
+	}
+
+	return 0;
+}
+
 static void rcar_du_crtc_atomic_enable(struct drm_crtc *crtc,
 				       struct drm_crtc_state *old_state)
 {
