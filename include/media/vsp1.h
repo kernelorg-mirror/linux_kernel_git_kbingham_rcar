@@ -21,7 +21,7 @@ int vsp1_du_init(struct device *dev);
 #define VSP1_DU_STATUS_WRITEBACK	BIT(1)
 
 /**
- * struct vsp1_du_lif_config - VSP LIF configuration
+ * struct vsp1_du_lif_config - VSP LIF configuration - Deprecated
  * @width: output frame width
  * @height: output frame height
  * @interlaced: true for interlaced pipelines
@@ -41,6 +41,30 @@ struct vsp1_du_lif_config {
 
 int vsp1_du_setup_lif(struct device *dev, unsigned int pipe_index,
 		      const struct vsp1_du_lif_config *cfg);
+
+/**
+ * struct vsp1_du_modeset_config - VSP LIF Mode configuration
+ * @width: output frame width
+ * @height: output frame height
+ * @interlaced: true for interlaced pipelines
+ */
+struct vsp1_du_modeset_config {
+	unsigned int width;
+	unsigned int height;
+	bool interlaced;
+};
+
+/**
+ * struct vsp1_du_enable_config - VSP enable configuration
+ * @callback: frame completion callback function (optional). When a callback
+ *	      is provided, the VSP driver guarantees that it will be called once
+ *	      and only once for each vsp1_du_atomic_flush() call.
+ * @callback_data: data to be passed to the frame completion callback
+ */
+struct vsp1_du_enable_config {
+	void (*callback)(void *data, unsigned int status, u32 crc);
+	void *callback_data;
+};
 
 /**
  * struct vsp1_du_atomic_config - VSP atomic configuration parameters
@@ -106,6 +130,12 @@ struct vsp1_du_atomic_pipe_config {
 	struct vsp1_du_writeback_config writeback;
 };
 
+
+int vsp1_du_atomic_modeset(struct device *dev, unsigned int pipe_index,
+		    const struct vsp1_du_modeset_config *cfg);
+int vsp1_du_atomic_enable(struct device *dev, unsigned int pipe_index,
+		   const struct vsp1_du_enable_config *cfg);
+int vsp1_du_atomic_disable(struct device *dev, unsigned int pipe_index);
 void vsp1_du_atomic_begin(struct device *dev, unsigned int pipe_index);
 int vsp1_du_atomic_update(struct device *dev, unsigned int pipe_index,
 			  unsigned int rpf,
