@@ -818,53 +818,6 @@ int vsp1_du_atomic_disable(struct device *dev, unsigned int pipe_index)
 EXPORT_SYMBOL_GPL(vsp1_du_atomic_disable);
 
 /**
- * vsp1_du_setup_lif - Setup the output part of the VSP pipeline
- * @dev: the VSP device
- * @pipe_index: the DRM pipeline index
- * @cfg: the LIF configuration
- *
- * Configure the output part of VSP DRM pipeline for the given frame @cfg.width
- * and @cfg.height. This sets up formats on the BRx source pad, the WPF sink and
- * source pads, and the LIF sink pad.
- *
- * The @pipe_index argument selects which DRM pipeline to setup. The number of
- * available pipelines depend on the VSP instance.
- *
- * As the media bus code on the blend unit source pad is conditioned by the
- * configuration of its sink 0 pad, we also set up the formats on all blend unit
- * sinks, even if the configuration will be overwritten later by
- * vsp1_du_setup_rpf(). This ensures that the blend unit configuration is set to
- * a well defined state.
- *
- * Return 0 on success or a negative error code on failure.
- */
-int vsp1_du_setup_lif(struct device *dev, unsigned int pipe_index,
-		      const struct vsp1_du_lif_config *cfg)
-{
-	int ret;
-
-	struct vsp1_du_modeset_config modes = {
-		.width = cfg->width,
-		.height = cfg->height,
-		.interlaced = cfg->interlaced,
-	};
-	struct vsp1_du_enable_config enable = {
-		.callback = cfg->callback,
-		.callback_data = cfg->callback_data,
-	};
-
-	if (!cfg)
-		return vsp1_du_atomic_disable(dev, pipe_index);
-
-	ret = vsp1_du_atomic_modeset(dev, pipe_index, &modes);
-	if (ret)
-		return ret;
-
-	return vsp1_du_atomic_enable(dev, pipe_index, &enable);
-}
-EXPORT_SYMBOL_GPL(vsp1_du_setup_lif);
-
-/**
  * vsp1_du_atomic_begin - Prepare for an atomic update
  * @dev: the VSP device
  * @pipe_index: the DRM pipeline index
