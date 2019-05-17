@@ -491,12 +491,6 @@ static void rcar_du_crtc_setup(struct rcar_du_crtc *rcrtc)
 	/* Start with all planes disabled. */
 	rcar_du_group_write(rcrtc->group, rcrtc->index % 2 ? DS2PR : DS1PR, 0);
 
-	/* Enable the VSP compositor. */
-	if (rcar_du_has(rcrtc->dev, RCAR_DU_FEATURE_VSP1_SOURCE)) {
-		rcar_du_vsp_modeset(rcrtc);
-		rcar_du_vsp_enable(rcrtc);
-	}
-
 	/* Turn vertical blanking interrupt reporting on. */
 	drm_crtc_vblank_on(&rcrtc->crtc);
 }
@@ -678,8 +672,11 @@ int rcar_du_crtc_atomic_modeset(struct drm_device *dev,
 		struct rcar_du_crtc *rcrtc = to_rcar_crtc(crtc);
 
 		if ((crtc_state->active_changed && crtc_state->active)
-		    || drm_atomic_crtc_needs_modeset(crtc_state))
-			rcar_du_crtc_setup(rcrtc);
+		    || drm_atomic_crtc_needs_modeset(crtc_state)) {
+
+			if (rcar_du_has(rcrtc->dev, RCAR_DU_FEATURE_VSP1_SOURCE))
+				rcar_du_vsp_modeset(rcrtc);
+		}
 	}
 
 	return 0;
@@ -709,6 +706,9 @@ static void rcar_du_crtc_atomic_enable(struct drm_crtc *crtc,
 		rcar_lvds_clk_enable(encoder->base.bridge,
 				     mode->clock * 1000);
 	}
+
+	if (rcar_du_has(rcrtc->dev, RCAR_DU_FEATURE_VSP1_SOURCE))
+		rcar_du_vsp_enable(rcrtc);
 
 	rcar_du_crtc_start(rcrtc);
 }
