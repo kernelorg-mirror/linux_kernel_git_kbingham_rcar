@@ -30,7 +30,6 @@ struct rcar_du_vsp;
  * @extclock: external pixel dot clock (optional)
  * @mmio_offset: offset of the CRTC registers in the DU MMIO block
  * @index: CRTC hardware index
- * @initialized: whether the CRTC has been initialized and clocks enabled
  * @dsysr: cached value of the DSYSR register
  * @vblank_enable: whether vblank events are enabled on this CRTC
  * @event: event to post when the pending page flip completes
@@ -52,7 +51,6 @@ struct rcar_du_crtc {
 	struct clk *extclock;
 	unsigned int mmio_offset;
 	unsigned int index;
-	bool initialized;
 
 	u32 dsysr;
 
@@ -113,6 +111,8 @@ int rcar_du_crtc_atomic_exit_standby(struct drm_device *dev,
 				     struct drm_atomic_state *state);
 int rcar_du_crtc_atomic_enter_standby(struct drm_device *dev,
 				      struct drm_atomic_state *state);
+int rcar_du_crtc_atomic_modeset(struct drm_device *dev,
+				struct drm_atomic_state *state);
 
 void rcar_du_crtc_dsysr_clr_set(struct rcar_du_crtc *rcrtc, u32 clr, u32 set);
 

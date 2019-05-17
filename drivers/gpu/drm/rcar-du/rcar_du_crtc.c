@@ -519,22 +519,6 @@ static void rcar_du_cmm_setup(struct drm_crtc *crtc)
  * Start/Stop and Suspend/Resume
  */
 
-static void rcar_du_crtc_setup(struct rcar_du_crtc *rcrtc)
-{
-	/* Configure display timings and output routing */
-	rcar_du_crtc_set_display_timing(rcrtc);
-	rcar_du_group_set_routing(rcrtc->group);
-
-	/* Enable the VSP compositor. */
-	if (rcar_du_has(rcrtc->dev, RCAR_DU_FEATURE_VSP1_SOURCE)) {
-		rcar_du_vsp_modeset(rcrtc);
-		rcar_du_vsp_enable(rcrtc);
-	}
-
-	/* Turn vertical blanking interrupt reporting on. */
-	drm_crtc_vblank_on(&rcrtc->crtc);
-}
-
 static int rcar_du_crtc_exit_standby(struct rcar_du_crtc *rcrtc)
 {
 	int ret;
@@ -573,24 +557,6 @@ static void rcar_du_crtc_enter_standby(struct rcar_du_crtc *rcrtc)
 
 	clk_disable_unprepare(rcrtc->extclock);
 	clk_disable_unprepare(rcrtc->clock);
-}
-
-static void rcar_du_crtc_get(struct rcar_du_crtc *rcrtc)
-{
-	/*
-	 * Guard against double-get, as the function is called from both the
-	 * .atomic_enable() and .atomic_begin() handlers.
-	 */
-	if (rcrtc->initialized)
-		return;
-
-	rcar_du_crtc_setup(rcrtc);
-	rcrtc->initialized = true;
-}
-
-static void rcar_du_crtc_put(struct rcar_du_crtc *rcrtc)
-{
-	rcrtc->initialized = false;
 }
 
 static void rcar_du_crtc_start(struct rcar_du_crtc *rcrtc)
@@ -768,6 +734,40 @@ int rcar_du_crtc_atomic_enter_standby(struct drm_device *dev,
 	return 0;
 }
 
+/*
+ * Configure the mode for all CRTCs that require it. For now we only handle mode
+ * set on the VSP, CRTC configuration will be handled later.
+ */
+int rcar_du_crtc_atomic_modeset(struct drm_device *dev,
+				struct drm_atomic_state *state)
+{
+	struct drm_crtc_state *crtc_state;
+	struct drm_crtc *crtc;
+	unsigned int i;
+
+	for_each_new_crtc_in_state(state, crtc, crtc_state, i) {
+		struct rcar_du_crtc *rcrtc = to_rcar_crtc(crtc);
+
+		/*
+		 * Skip commits that don't change the mode. We manually skip
+		 * inactive CRTCs as disabling a CRTC is considered as a mode
+		 * set by drm_atomic_crtc_needs_modeset().
+		 */
+		if (!drm_atomic_crtc_needs_modeset(crtc_state) ||
+		    !crtc_state->active)
+			continue;
+
+		/* Configure display timings and output routing. */
+		rcar_du_crtc_set_display_timing(rcrtc);
+		rcar_du_group_set_routing(rcrtc->group);
+
+		if (rcar_du_has(rcrtc->dev, RCAR_DU_FEATURE_VSP1_SOURCE))
+			rcar_du_vsp_modeset(rcrtc);
+	}
+
+	return 0;
+}
+
 static void rcar_du_crtc_atomic_enable(struct drm_crtc *crtc,
 				       struct drm_atomic_state *state)
 {
@@ -777,8 +777,6 @@ static void rcar_du_crtc_atomic_enable(struct drm_crtc *crtc,
 
 	if (rcrtc->cmm)
 		rcar_cmm_enable(rcrtc->cmm);
-	rcar_du_crtc_get(rcrtc);
-
 	/*
 	 * On D3/E3 the dot clock is provided by the LVDS encoder attached to
 	 * the DU channel. We need to enable its clock output explicitly if
@@ -792,6 +790,9 @@ static void rcar_du_crtc_atomic_enable(struct drm_crtc *crtc,
 
 		rcar_lvds_clk_enable(bridge, mode->clock * 1000);
 	}
+
+	if (rcar_du_has(rcrtc->dev, RCAR_DU_FEATURE_VSP1_SOURCE))
+		rcar_du_vsp_enable(rcrtc);
 
 	rcar_du_crtc_start(rcrtc);
 
@@ -813,7 +814,6 @@ static void rcar_du_crtc_atomic_disable(struct drm_crtc *crtc,
 	struct rcar_du_device *rcdu = rcrtc->dev;
 
 	rcar_du_crtc_stop(rcrtc);
-	rcar_du_crtc_put(rcrtc);
 
 	if (rcdu->info->lvds_clk_mask & BIT(rcrtc->index) &&
 	    rstate->outputs == BIT(RCAR_DU_OUTPUT_DPAD0)) {
@@ -841,19 +841,8 @@ static void rcar_du_crtc_atomic_begin(struct drm_crtc *crtc,
 
 	WARN_ON(!crtc->state->enable);
 
-	/*
-	 * If a mode set is in progress we can be called with the CRTC disabled.
-	 * We thus need to first get and setup the CRTC in order to configure
-	 * planes. We must *not* put the CRTC in .atomic_flush(), as it must be
-	 * kept awake until the .atomic_enable() call that will follow. The get
-	 * operation in .atomic_enable() will in that case be a no-op, and the
-	 * CRTC will be put later in .atomic_disable().
-	 *
-	 * If a mode set is not in progress the CRTC is enabled, and the
-	 * following get call will be a no-op. There is thus no need to balance
-	 * it in .atomic_flush() either.
-	 */
-	rcar_du_crtc_get(rcrtc);
+	/* Turn vertical blanking interrupt reporting on. */
+	drm_crtc_vblank_on(&rcrtc->crtc);
 
 	/* If the active state changed, we let .atomic_enable handle CMM. */
 	if (crtc->state->color_mgmt_changed && !crtc->state->active_changed)
