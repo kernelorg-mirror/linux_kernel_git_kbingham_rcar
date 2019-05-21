@@ -423,6 +423,9 @@ static int rdacm20_initialize(struct rdacm20_device *dev)
 	 * the address specified in DT. Set the client address back to the
 	 * default for initial communication.
 	 */
+	/* Create a dummy device, configure to that device, then change the
+	 * address. Then delete it when the address is changed?
+	 */
 	dev->client->addr = MAX9271_I2C_ADDRESS;
 
 	/* Verify communication with the MAX9271. */
