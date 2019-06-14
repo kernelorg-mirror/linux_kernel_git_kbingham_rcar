@@ -723,6 +723,8 @@ int vsp1_du_atomic_enable(struct device *dev, unsigned int pipe_index,
 	/* Configure all entities in the pipeline. */
 	vsp1_du_pipeline_configure(pipe);
 
+	drm_pipe->enabled = true;
+
 unlock:
 	mutex_unlock(&vsp1->drm->lock);
 
@@ -799,6 +801,8 @@ int vsp1_du_atomic_disable(struct device *dev, unsigned int pipe_index)
 	list_del(&pipe->brx->list_pipe);
 	pipe->brx->pipe = NULL;
 	pipe->brx = NULL;
+
+	drm_pipe->enabled = false;
 
 	mutex_unlock(&vsp1->drm->lock);
 
@@ -992,7 +996,14 @@ void vsp1_du_atomic_flush(struct device *dev, unsigned int pipe_index,
 	}
 
 	vsp1_du_pipeline_setup_inputs(vsp1, pipe);
-	vsp1_du_pipeline_configure(pipe);
+
+	/*
+	 * We may get called before the pipeline gets enabled, postpone
+	 * configuration in that case. vsp1_du_pipeline_configure() will be
+	 * called from vsp1_du_atomic_enable().
+	 */
+	if (drm_pipe->enabled)
+		vsp1_du_pipeline_configure(pipe);
 
 done:
 	mutex_unlock(&vsp1->drm->lock);
