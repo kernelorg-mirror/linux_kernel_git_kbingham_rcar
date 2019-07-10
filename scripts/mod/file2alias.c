@@ -384,6 +384,35 @@ static void do_of_table(void *symval, unsigned long size,
 		do_of_entry_multi(symval + i, mod);
 }
 
+static int do_i2c_of_entry(void *symval, struct module *mod)
+{
+	const char *alias;
+	DEF_FIELD_ADDR(symval, of_device_id, compatible);
+
+	alias = strrchr(*compatible, ',');
+
+	buf_printf(&mod->dev_table_buf, "MODULE_ALIAS(\"%s%s\");\n",
+		   I2C_MODULE_PREFIX, alias ? alias + 1 : *compatible);
+
+	return 1;
+}
+
+/* Reuse OF tables to generate I2C aliases */
+static void do_i2c_of_table(void *symval, unsigned long size,
+			    struct module *mod)
+{
+	unsigned int i;
+	const unsigned long id_size = SIZE_of_device_id;
+
+	device_id_check(mod->name, "i2c_of", size, id_size, symval);
+
+	/* Leave last one: it's the terminator. */
+	size -= id_size;
+
+	for (i = 0; i < size; i += id_size)
+		do_i2c_of_entry(symval + i, mod);
+}
+
 /* Looks like: hid:bNvNpN */
 static int do_hid_entry(const char *filename,
 			     void *symval, char *alias)
@@ -1488,6 +1517,8 @@ void handle_moddevtable(struct module *mod, struct elf_info *info,
 		do_usb_table(symval, sym->st_size, mod);
 	if (sym_is(name, namelen, "of"))
 		do_of_table(symval, sym->st_size, mod);
+	else if (sym_is(name, namelen, "i2c_of"))
+		do_i2c_of_table(symval, sym->st_size, mod);
 	else if (sym_is(name, namelen, "pnp"))
 		do_pnp_device_entry(symval, sym->st_size, mod);
 	else if (sym_is(name, namelen, "pnp_card"))
