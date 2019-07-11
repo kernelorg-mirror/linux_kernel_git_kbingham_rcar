@@ -359,11 +359,6 @@ static int s5k6a3_remove(struct i2c_client *client)
 	return 0;
 }
 
-static const struct i2c_device_id s5k6a3_ids[] = {
-	{ }
-};
-MODULE_DEVICE_TABLE(i2c, s5k6a3_ids);
-
 #ifdef CONFIG_OF
 static const struct of_device_id s5k6a3_of_match[] = {
 	{ .compatible = "samsung,s5k6a3" },
@@ -379,7 +374,6 @@ static struct i2c_driver s5k6a3_driver = {
 	},
 	.probe_new	= s5k6a3_probe,
 	.remove		= s5k6a3_remove,
-	.id_table	= s5k6a3_ids,
 };
 
 module_i2c_driver(s5k6a3_driver);

@@ -3147,12 +3147,6 @@ static const struct of_device_id smiapp_of_table[] = {
 };
 MODULE_DEVICE_TABLE(of, smiapp_of_table);
 
-static const struct i2c_device_id smiapp_id_table[] = {
-	{ SMIAPP_NAME, 0 },
-	{ },
-};
-MODULE_DEVICE_TABLE(i2c, smiapp_id_table);
-
 static const struct dev_pm_ops smiapp_pm_ops = {
 	SET_SYSTEM_SLEEP_PM_OPS(smiapp_suspend, smiapp_resume)
 	SET_RUNTIME_PM_OPS(smiapp_power_off, smiapp_power_on, NULL)
@@ -3166,7 +3160,6 @@ static struct i2c_driver smiapp_i2c_driver = {
 	},
 	.probe_new = smiapp_probe,
 	.remove	= smiapp_remove,
-	.id_table = smiapp_id_table,
 };
 
 module_i2c_driver(smiapp_i2c_driver);

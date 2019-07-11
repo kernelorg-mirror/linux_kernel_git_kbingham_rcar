@@ -1202,12 +1202,6 @@ static int __maybe_unused ov7740_runtime_resume(struct device *dev)
 	return ov7740_set_power(ov7740, 1);
 }
 
-static const struct i2c_device_id ov7740_id[] = {
-	{ "ov7740", 0 },
-	{ /* sentinel */ }
-};
-MODULE_DEVICE_TABLE(i2c, ov7740_id);
-
 static const struct dev_pm_ops ov7740_pm_ops = {
 	SET_RUNTIME_PM_OPS(ov7740_runtime_suspend, ov7740_runtime_resume, NULL)
 };
@@ -1226,7 +1220,6 @@ static struct i2c_driver ov7740_i2c_driver = {
 	},
 	.probe_new = ov7740_probe,
 	.remove   = ov7740_remove,
-	.id_table = ov7740_id,
 };
 module_i2c_driver(ov7740_i2c_driver);
 

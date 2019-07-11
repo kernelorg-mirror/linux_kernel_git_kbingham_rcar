@@ -1284,12 +1284,6 @@ static int ov2640_remove(struct i2c_client *client)
 	return 0;
 }
 
-static const struct i2c_device_id ov2640_id[] = {
-	{ "ov2640", 0 },
-	{ }
-};
-MODULE_DEVICE_TABLE(i2c, ov2640_id);
-
 static const struct of_device_id ov2640_of_match[] = {
 	{.compatible = "ovti,ov2640", },
 	{},
@@ -1303,7 +1297,6 @@ static struct i2c_driver ov2640_i2c_driver = {
 	},
 	.probe_new = ov2640_probe,
 	.remove   = ov2640_remove,
-	.id_table = ov2640_id,
 };
 
 module_i2c_driver(ov2640_i2c_driver);

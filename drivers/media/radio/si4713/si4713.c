@@ -1640,28 +1640,20 @@ static int si4713_remove(struct i2c_client *client)
 }
 
 /* si4713_i2c_driver - i2c driver interface */
-static const struct i2c_device_id si4713_id[] = {
-	{ "si4713" , 0 },
-	{ },
-};
-MODULE_DEVICE_TABLE(i2c, si4713_id);
-
-#if IS_ENABLED(CONFIG_OF)
 static const struct of_device_id si4713_of_match[] = {
 	{ .compatible = "silabs,si4713" },
 	{ },
 };
 MODULE_DEVICE_TABLE(of, si4713_of_match);
-#endif
+MODULE_DEVICE_TABLE(i2c_of, si4713_of_match);
 
 static struct i2c_driver si4713_i2c_driver = {
 	.driver		= {
 		.name	= "si4713",
-		.of_match_table = of_match_ptr(si4713_of_match),
+		.of_match_table = si4713_of_match,
 	},
 	.probe_new	= si4713_probe,
 	.remove         = si4713_remove,
-	.id_table       = si4713_id,
 };
 
 module_i2c_driver(si4713_i2c_driver);

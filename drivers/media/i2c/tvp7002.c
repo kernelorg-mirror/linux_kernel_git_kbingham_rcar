@@ -1054,13 +1054,6 @@ static int tvp7002_remove(struct i2c_client *c)
 	return 0;
 }
 
-/* I2C Device ID table */
-static const struct i2c_device_id tvp7002_id[] = {
-	{ "tvp7002", 0 },
-	{ }
-};
-MODULE_DEVICE_TABLE(i2c, tvp7002_id);
-
 #if IS_ENABLED(CONFIG_OF)
 static const struct of_device_id tvp7002_of_match[] = {
 	{ .compatible = "ti,tvp7002", },
@@ -1077,7 +1070,6 @@ static struct i2c_driver tvp7002_driver = {
 	},
 	.probe_new = tvp7002_probe,
 	.remove = tvp7002_remove,
-	.id_table = tvp7002_id,
 };
 
 module_i2c_driver(tvp7002_driver);

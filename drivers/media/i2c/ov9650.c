@@ -1596,13 +1596,6 @@ static int ov965x_remove(struct i2c_client *client)
 	return 0;
 }
 
-static const struct i2c_device_id ov965x_id[] = {
-	{ "OV9650", 0 },
-	{ "OV9652", 0 },
-	{ /* sentinel */ }
-};
-MODULE_DEVICE_TABLE(i2c, ov965x_id);
-
 #if IS_ENABLED(CONFIG_OF)
 static const struct of_device_id ov965x_of_match[] = {
 	{ .compatible = "ovti,ov9650", },
@@ -1619,7 +1612,6 @@ static struct i2c_driver ov965x_i2c_driver = {
 	},
 	.probe_new	= ov965x_probe,
 	.remove		= ov965x_remove,
-	.id_table	= ov965x_id,
 };
 
 module_i2c_driver(ov965x_i2c_driver);

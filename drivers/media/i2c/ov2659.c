@@ -1557,12 +1557,6 @@ static const struct dev_pm_ops ov2659_pm_ops = {
 	SET_RUNTIME_PM_OPS(ov2659_power_off, ov2659_power_on, NULL)
 };
 
-static const struct i2c_device_id ov2659_id[] = {
-	{ "ov2659", 0 },
-	{ /* sentinel */ },
-};
-MODULE_DEVICE_TABLE(i2c, ov2659_id);
-
 #if IS_ENABLED(CONFIG_OF)
 static const struct of_device_id ov2659_of_match[] = {
 	{ .compatible = "ovti,ov2659", },
@@ -1579,7 +1573,6 @@ static struct i2c_driver ov2659_i2c_driver = {
 	},
 	.probe_new	= ov2659_probe,
 	.remove		= ov2659_remove,
-	.id_table	= ov2659_id,
 };
 
 module_i2c_driver(ov2659_i2c_driver);

@@ -1815,12 +1815,6 @@ static const struct of_device_id imx274_of_id_table[] = {
 };
 MODULE_DEVICE_TABLE(of, imx274_of_id_table);
 
-static const struct i2c_device_id imx274_id[] = {
-	{ "IMX274", 0 },
-	{ }
-};
-MODULE_DEVICE_TABLE(i2c, imx274_id);
-
 static int imx274_probe(struct i2c_client *client)
 {
 	struct v4l2_subdev *sd;
@@ -1985,7 +1979,6 @@ static struct i2c_driver imx274_i2c_driver = {
 	},
 	.probe_new	= imx274_probe,
 	.remove		= imx274_remove,
-	.id_table	= imx274_id,
 };
 
 module_i2c_driver(imx274_i2c_driver);

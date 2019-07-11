@@ -2201,13 +2201,6 @@ static int tc358743_remove(struct i2c_client *client)
 	return 0;
 }
 
-static const struct i2c_device_id tc358743_id[] = {
-	{"tc358743", 0},
-	{}
-};
-
-MODULE_DEVICE_TABLE(i2c, tc358743_id);
-
 #if IS_ENABLED(CONFIG_OF)
 static const struct of_device_id tc358743_of_match[] = {
 	{ .compatible = "toshiba,tc358743" },
@@ -2223,7 +2216,6 @@ static struct i2c_driver tc358743_driver = {
 	},
 	.probe_new = tc358743_probe,
 	.remove = tc358743_remove,
-	.id_table = tc358743_id,
 };
 
 module_i2c_driver(tc358743_driver);

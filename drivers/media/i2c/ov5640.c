@@ -3111,12 +3111,6 @@ static int ov5640_remove(struct i2c_client *client)
 	return 0;
 }
 
-static const struct i2c_device_id ov5640_id[] = {
-	{"ov5640", 0},
-	{},
-};
-MODULE_DEVICE_TABLE(i2c, ov5640_id);
-
 static const struct of_device_id ov5640_dt_ids[] = {
 	{ .compatible = "ovti,ov5640" },
 	{ /* sentinel */ }
@@ -3128,7 +3122,6 @@ static struct i2c_driver ov5640_i2c_driver = {
 		.name  = "ov5640",
 		.of_match_table	= ov5640_dt_ids,
 	},
-	.id_table = ov5640_id,
 	.probe_new = ov5640_probe,
 	.remove   = ov5640_remove,
 };

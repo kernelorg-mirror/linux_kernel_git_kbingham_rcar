@@ -1376,12 +1376,6 @@ static const struct of_device_id mt9m111_of_match[] = {
 };
 MODULE_DEVICE_TABLE(of, mt9m111_of_match);
 
-static const struct i2c_device_id mt9m111_id[] = {
-	{ "mt9m111", 0 },
-	{ }
-};
-MODULE_DEVICE_TABLE(i2c, mt9m111_id);
-
 static struct i2c_driver mt9m111_i2c_driver = {
 	.driver = {
 		.name = "mt9m111",
@@ -1389,7 +1383,6 @@ static struct i2c_driver mt9m111_i2c_driver = {
 	},
 	.probe_new	= mt9m111_probe,
 	.remove		= mt9m111_remove,
-	.id_table	= mt9m111_id,
 };
 
 module_i2c_driver(mt9m111_i2c_driver);

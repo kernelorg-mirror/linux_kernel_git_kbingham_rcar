@@ -1487,12 +1487,6 @@ static const struct of_device_id et8ek8_of_table[] = {
 };
 MODULE_DEVICE_TABLE(of, et8ek8_of_table);
 
-static const struct i2c_device_id et8ek8_id_table[] = {
-	{ ET8EK8_NAME, 0 },
-	{ }
-};
-MODULE_DEVICE_TABLE(i2c, et8ek8_id_table);
-
 static const struct dev_pm_ops et8ek8_pm_ops = {
 	SET_SYSTEM_SLEEP_PM_OPS(et8ek8_suspend, et8ek8_resume)
 };
@@ -1505,7 +1499,6 @@ static struct i2c_driver et8ek8_i2c_driver = {
 	},
 	.probe_new	= et8ek8_probe,
 	.remove		= __exit_p(et8ek8_remove),
-	.id_table	= et8ek8_id_table,
 };
 
 module_i2c_driver(et8ek8_i2c_driver);

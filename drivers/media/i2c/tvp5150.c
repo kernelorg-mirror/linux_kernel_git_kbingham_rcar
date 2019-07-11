@@ -2266,12 +2266,6 @@ static const struct dev_pm_ops tvp5150_pm_ops = {
 			   NULL)
 };
 
-static const struct i2c_device_id tvp5150_id[] = {
-	{ "tvp5150", 0 },
-	{ }
-};
-MODULE_DEVICE_TABLE(i2c, tvp5150_id);
-
 #if IS_ENABLED(CONFIG_OF)
 static const struct of_device_id tvp5150_of_match[] = {
 	{ .compatible = "ti,tvp5150", },
@@ -2288,7 +2282,6 @@ static struct i2c_driver tvp5150_driver = {
 	},
 	.probe_new	= tvp5150_probe,
 	.remove		= tvp5150_remove,
-	.id_table	= tvp5150_id,
 };
 
 module_i2c_driver(tvp5150_driver);

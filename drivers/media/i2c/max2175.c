@@ -1415,12 +1415,6 @@ static int max2175_remove(struct i2c_client *client)
 	return 0;
 }
 
-static const struct i2c_device_id max2175_id[] = {
-	{ DRIVER_NAME, 0},
-	{},
-};
-MODULE_DEVICE_TABLE(i2c, max2175_id);
-
 static const struct of_device_id max2175_of_ids[] = {
 	{ .compatible = "maxim,max2175", },
 	{ }
@@ -1434,7 +1428,6 @@ static struct i2c_driver max2175_driver = {
 	},
 	.probe_new	= max2175_probe,
 	.remove		= max2175_remove,
-	.id_table	= max2175_id,
 };
 
 module_i2c_driver(max2175_driver);

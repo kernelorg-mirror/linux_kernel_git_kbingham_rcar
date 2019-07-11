@@ -1467,12 +1467,6 @@ static int ov772x_remove(struct i2c_client *client)
 	return 0;
 }
 
-static const struct i2c_device_id ov772x_id[] = {
-	{ "ov772x", 0 },
-	{ }
-};
-MODULE_DEVICE_TABLE(i2c, ov772x_id);
-
 static const struct of_device_id ov772x_of_match[] = {
 	{ .compatible = "ovti,ov7725", },
 	{ .compatible = "ovti,ov7720", },
@@ -1487,7 +1481,6 @@ static struct i2c_driver ov772x_i2c_driver = {
 	},
 	.probe_new = ov772x_probe,
 	.remove   = ov772x_remove,
-	.id_table = ov772x_id,
 };
 
 module_i2c_driver(ov772x_i2c_driver);
