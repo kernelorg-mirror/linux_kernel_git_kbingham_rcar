@@ -1751,8 +1751,7 @@ static int cs42l42_handle_device_data(struct i2c_client *i2c_client,
 	return 0;
 }
 
-static int cs42l42_i2c_probe(struct i2c_client *i2c_client,
-				       const struct i2c_device_id *id)
+static int cs42l42_i2c_probe(struct i2c_client *i2c_client)
 {
 	struct cs42l42_private *cs42l42;
 	int ret, i;
@@ -1962,7 +1961,7 @@ static struct i2c_driver cs42l42_i2c_driver = {
 		.of_match_table = cs42l42_of_match,
 		},
 	.id_table = cs42l42_id,
-	.probe = cs42l42_i2c_probe,
+	.probe_new = cs42l42_i2c_probe,
 	.remove = cs42l42_i2c_remove,
 };
 

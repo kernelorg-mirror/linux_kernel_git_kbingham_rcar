@@ -1875,8 +1875,7 @@ static int nau8824_read_device_properties(struct device *dev,
 	return 0;
 }
 
-static int nau8824_i2c_probe(struct i2c_client *i2c,
-	const struct i2c_device_id *id)
+static int nau8824_i2c_probe(struct i2c_client *i2c)
 {
 	struct device *dev = &i2c->dev;
 	struct nau8824 *nau8824 = dev_get_platdata(dev);
@@ -1945,7 +1944,7 @@ static struct i2c_driver nau8824_i2c_driver = {
 		.of_match_table = of_match_ptr(nau8824_of_ids),
 		.acpi_match_table = ACPI_PTR(nau8824_acpi_match),
 	},
-	.probe = nau8824_i2c_probe,
+	.probe_new = nau8824_i2c_probe,
 	.id_table = nau8824_i2c_ids,
 };
 module_i2c_driver(nau8824_i2c_driver);
