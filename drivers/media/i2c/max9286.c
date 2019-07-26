@@ -158,6 +158,7 @@ struct max9286_device {
 	unsigned int route_mask;
 	unsigned int csi2_data_lanes;
 	struct max9286_source sources[MAX9286_NUM_GMSL];
+	struct v4l2_async_subdev *subdevs[MAX9286_NUM_GMSL];
 	struct v4l2_async_notifier notifier;
 };
 
@@ -596,7 +597,7 @@ static int max9286_get_frame_desc(struct v4l2_subdev *sd, unsigned int pad,
 }
 
 static int max9286_get_routing(struct v4l2_subdev *sd,
-				 struct v4l2_subdev_routing *routing)
+			       struct v4l2_subdev_krouting *routing)
 {
 	struct max9286_device *dev = sd_to_max9286(sd);
 	struct v4l2_subdev_route *r = routing->routes;
@@ -626,7 +627,7 @@ static int max9286_get_routing(struct v4l2_subdev *sd,
 }
 
 static int max9286_set_routing(struct v4l2_subdev *sd,
-			       struct v4l2_subdev_routing *routing)
+			       struct v4l2_subdev_krouting *routing)
 {
 
 	struct max9286_device *dev = sd_to_max9286(sd);
@@ -956,8 +957,6 @@ static int max9286_parse_dt(struct max9286_device *max9286)
 	struct device_node *ep_np = NULL;
 	int ret;
 
-	v4l2_async_notifier_init(&max9286->notifier);
-
 	for_each_endpoint_of_node(dev->of_node, ep_np) {
 		struct max9286_source *source;
 		struct of_endpoint ep;
@@ -976,25 +975,24 @@ static int max9286_parse_dt(struct max9286_device *max9286)
 
 		/* For the source endpoint just parse the bus configuration. */
 		if (ep.port == MAX9286_SRC_PAD) {
-			struct v4l2_fwnode_endpoint vep;
-			int ret;
+			struct v4l2_fwnode_endpoint *vep;
 
-			ret = v4l2_fwnode_endpoint_alloc_parse(
-					of_fwnode_handle(ep_np), &vep);
-			if (ret)
-				return ret;
+			vep = v4l2_fwnode_endpoint_alloc_parse(
+					of_fwnode_handle(ep_np));
+			if (IS_ERR_OR_NULL(vep))
+				return ERR_PTR(vep);
 
-			if (vep.bus_type != V4L2_MBUS_CSI2_DPHY) {
+			if (vep->bus_type != V4L2_MBUS_CSI2) {
 				dev_err(dev,
 					"Media bus %u type not supported\n",
-					vep.bus_type);
-				v4l2_fwnode_endpoint_free(&vep);
+					vep->bus_type);
+				v4l2_fwnode_endpoint_free(vep);
 				return -EINVAL;
 			}
 
 			max9286->csi2_data_lanes =
-				vep.bus.mipi_csi2.num_data_lanes;
-			v4l2_fwnode_endpoint_free(&vep);
+				vep->bus.mipi_csi2.num_data_lanes;
+			v4l2_fwnode_endpoint_free(vep);
 
 			continue;
 		}
@@ -1023,12 +1021,9 @@ static int max9286_parse_dt(struct max9286_device *max9286)
 		}
 
 		source->asd.match_type = V4L2_ASYNC_MATCH_FWNODE;
-		source->asd.match.fwnode = source->fwnode;
+		source->asd.match.fwnode.fwnode = source->fwnode;
 
-		ret = v4l2_async_notifier_add_subdev(&max9286->notifier,
-						     &source->asd);
-		if (ret) /* TODO: Cleanup notifier! */
-			return ret;
+		max9286->subdevs[max9286->nsources] = &source->asd;
 
 		max9286->source_mask |= BIT(ep.port);
 		max9286->nsources++;
@@ -1039,6 +1034,8 @@ static int max9286_parse_dt(struct max9286_device *max9286)
 		return 0;
 
 	max9286->route_mask = max9286->source_mask;
+	max9286->notifier.num_subdevs = max9286->nsources;
+	max9286->notifier.subdevs = max9286->subdevs;
 	max9286->notifier.ops = &max9286_notify_ops;
 
 	return v4l2_async_subdev_notifier_register(&max9286->sd,
