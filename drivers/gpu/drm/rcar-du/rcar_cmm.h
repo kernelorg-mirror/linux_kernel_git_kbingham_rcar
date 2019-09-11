@@ -9,6 +9,7 @@
 #define __RCAR_CMM_H__
 
 #define CM2_LUT_SIZE		256
+#define CM2_CLU_SIZE		(17 * 17 * 17)
 
 struct drm_color_lut;
 struct platform_device;
@@ -18,11 +19,19 @@ struct platform_device;
  *
  * @lut:	1D-LUT configuration
  * @lut.table:	1D-LUT table entries. Disable LUT operations when NULL
+ *
+ * @clu:	3D-CLU configuration
+ * @clu.enable:	3D-CLU enable flag
+ * @clu.table:	3D-CLU table entries
  */
 struct rcar_cmm_config {
 	struct {
 		struct drm_color_lut *table;
 	} lut;
+
+	struct {
+		struct drm_color_lut *table;
+	} clu;
 };
 
 #if IS_ENABLED(CONFIG_DRM_RCAR_CMM)

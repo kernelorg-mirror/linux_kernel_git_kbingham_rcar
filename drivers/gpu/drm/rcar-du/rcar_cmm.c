@@ -17,8 +17,17 @@
 
 #define CM2_LUT_CTRL		0x0000
 #define CM2_LUT_CTRL_LUT_EN	BIT(0)
+
+#define CM2_CLU_CTRL		0x0100
+#define CM2_CLU_CTRL_CLU_EN	BIT(1)
+#define CM2_CLU_CTRL_MVS	BIT(24)
+#define CM2_CLU_CTRL_AAI	BIT(28)
+
 #define CM2_LUT_TBL_BASE	0x0600
 #define CM2_LUT_TBL(__i)	(CM2_LUT_TBL_BASE + (__i) * 4)
+
+#define CM2_CLU_ADDR		0x0a00
+#define CM2_CLU_DATA		0x0a04
 
 struct rcar_cmm {
 	void __iomem *base;
@@ -30,6 +39,10 @@ struct rcar_cmm {
 	struct {
 		bool enabled;
 	} lut;
+
+	struct {
+		bool enabled;
+	} clu;
 };
 
 static inline int rcar_cmm_read(struct rcar_cmm *rcmm, u32 reg)
@@ -66,13 +79,43 @@ static void rcar_cmm_lut_configure(struct rcar_cmm *rcmm,
 	rcmm->lut.enabled = enable;
 }
 
+static void rcar_cmm_clu_configure(struct rcar_cmm *rcmm,
+				   const struct drm_color_lut *table,
+				   bool enable)
+{
+	static const u32 cfg = CM2_CLU_CTRL_AAI
+			     | CM2_CLU_CTRL_MVS
+			     | CM2_CLU_CTRL_CLU_EN;
+
+	rcar_cmm_write(rcmm, CM2_CLU_CTRL, enable ? cfg : 0);
+
+	if (enable && !rcmm->clu.enabled) {
+		unsigned int i;
+
+		/* Utilise CM2_CLU_CTRL_AAI (auto-increment). */
+		rcar_cmm_write(rcmm, CM2_CLU_ADDR, 0);
+
+		for (i = 0; i < CM2_CLU_SIZE; ++i) {
+			const struct drm_color_lut *lut = &table[i];
+
+			u32 entry = drm_color_lut_extract(lut->red, 8) << 16
+				  | drm_color_lut_extract(lut->green, 8) << 8
+				  | drm_color_lut_extract(lut->blue, 8);
+
+			rcar_cmm_write(rcmm, CM2_CLU_DATA, entry);
+		}
+	}
+
+	rcmm->clu.enabled = enable;
+}
+
 /*
  * rcar_cmm_setup() - Configure the CMM unit
  * @pdev: The platform device associated with the CMM instance
  * @config: The CMM unit configuration
  *
- * Configure the CMM unit with the given configuration. Currently enabling,
- * disabling and programming of the 1-D LUT unit is supported.
+ * Configure the CMM unit with the given configuration, handling both the
+ * 1-D LUT and the 3-D CLU.
  *
  * As rcar_cmm_setup() accesses the CMM registers the unit should be powered
  * and its functional clock enabled. To guarantee this, before any call to
@@ -87,8 +130,9 @@ int rcar_cmm_setup(struct platform_device *pdev,
 {
 	struct rcar_cmm *rcmm = platform_get_drvdata(pdev);
 
-	/* Enable or disable the LUT based on the presence of the table. */
+	/* Enable or disable the LUTs based on the presence of the tables. */
 	rcar_cmm_lut_configure(rcmm, config->lut.table, !!config->lut.table);
+	rcar_cmm_clu_configure(rcmm, config->clu.table, !!config->clu.table);
 
 	return 0;
 }
@@ -134,6 +178,7 @@ void rcar_cmm_disable(struct platform_device *pdev)
 	struct rcar_cmm *rcmm = platform_get_drvdata(pdev);
 
 	rcar_cmm_lut_configure(rcmm, NULL, false);
+	rcar_cmm_clu_configure(rcmm, NULL, false);
 
 	pm_runtime_put(&pdev->dev);
 }
