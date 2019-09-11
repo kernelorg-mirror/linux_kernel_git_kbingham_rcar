@@ -42,24 +42,28 @@ static inline void rcar_cmm_write(struct rcar_cmm *rcmm, u32 reg, u32 data)
 	iowrite32(data, rcmm->base + reg);
 }
 
-/*
- * rcar_cmm_lut_write() - Scale the DRM LUT table entries to hardware precision
- *			  and write to the CMM registers
- * @rcmm: Pointer to the CMM device
- * @drm_lut: Pointer to the DRM LUT table
- */
-static void rcar_cmm_lut_write(struct rcar_cmm *rcmm,
-			       const struct drm_color_lut *drm_lut)
+static void rcar_cmm_lut_configure(struct rcar_cmm *rcmm,
+				   const struct drm_color_lut *drm_lut,
+				   bool enable)
 {
-	unsigned int i;
+	/* Enable LUT and program the new gamma table values. */
+	rcar_cmm_write(rcmm, CM2_LUT_CTRL, enable ? CM2_LUT_CTRL_LUT_EN : 0);
 
-	for (i = 0; i < CM2_LUT_SIZE; ++i) {
-		u32 entry = drm_color_lut_extract(drm_lut[i].red, 8) << 16
-			  | drm_color_lut_extract(drm_lut[i].green, 8) << 8
-			  | drm_color_lut_extract(drm_lut[i].blue, 8);
+	if (enable && !rcmm->lut.enabled) {
+		unsigned int i;
 
-		rcar_cmm_write(rcmm, CM2_LUT_TBL(i), entry);
+		for (i = 0; i < CM2_LUT_SIZE; ++i) {
+			const struct drm_color_lut *lut = &drm_lut[i];
+
+			u32 entry = drm_color_lut_extract(lut->red, 8) << 16
+				  | drm_color_lut_extract(lut->green, 8) << 8
+				  | drm_color_lut_extract(lut->blue, 8);
+
+			rcar_cmm_write(rcmm, CM2_LUT_TBL(i), entry);
+		}
 	}
+
+	rcmm->lut.enabled = enable;
 }
 
 /*
@@ -83,23 +87,8 @@ int rcar_cmm_setup(struct platform_device *pdev,
 {
 	struct rcar_cmm *rcmm = platform_get_drvdata(pdev);
 
-	/* Disable LUT if no table is provided. */
-	if (!config->lut.table) {
-		if (rcmm->lut.enabled) {
-			rcar_cmm_write(rcmm, CM2_LUT_CTRL, 0);
-			rcmm->lut.enabled = false;
-		}
-
-		return 0;
-	}
-
-	/* Enable LUT and program the new gamma table values. */
-	if (!rcmm->lut.enabled) {
-		rcar_cmm_write(rcmm, CM2_LUT_CTRL, CM2_LUT_CTRL_LUT_EN);
-		rcmm->lut.enabled = true;
-	}
-
-	rcar_cmm_lut_write(rcmm, config->lut.table);
+	/* Enable or disable the LUT based on the presence of the table. */
+	rcar_cmm_lut_configure(rcmm, config->lut.table, !!config->lut.table);
 
 	return 0;
 }
@@ -144,8 +133,7 @@ void rcar_cmm_disable(struct platform_device *pdev)
 {
 	struct rcar_cmm *rcmm = platform_get_drvdata(pdev);
 
-	rcar_cmm_write(rcmm, CM2_LUT_CTRL, 0);
-	rcmm->lut.enabled = false;
+	rcar_cmm_lut_configure(rcmm, NULL, false);
 
 	pm_runtime_put(&pdev->dev);
 }
