@@ -137,6 +137,8 @@ void __drm_atomic_helper_crtc_duplicate_state(struct drm_crtc *crtc,
 		drm_property_blob_get(state->ctm);
 	if (state->gamma_lut)
 		drm_property_blob_get(state->gamma_lut);
+	if (state->clu)
+		drm_property_blob_get(state->clu);
 	state->mode_changed = false;
 	state->active_changed = false;
 	state->planes_changed = false;
@@ -209,6 +211,7 @@ void __drm_atomic_helper_crtc_destroy_state(struct drm_crtc_state *state)
 	drm_property_blob_put(state->degamma_lut);
 	drm_property_blob_put(state->ctm);
 	drm_property_blob_put(state->gamma_lut);
+	drm_property_blob_put(state->clu);
 }
 EXPORT_SYMBOL(__drm_atomic_helper_crtc_destroy_state);
 

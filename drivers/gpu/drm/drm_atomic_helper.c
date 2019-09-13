@@ -3525,6 +3525,7 @@ int drm_atomic_helper_legacy_gamma_set(struct drm_crtc *crtc,
 	/* Reset DEGAMMA_LUT and CTM properties. */
 	replaced  = drm_property_replace_blob(&crtc_state->degamma_lut, NULL);
 	replaced |= drm_property_replace_blob(&crtc_state->ctm, NULL);
+	replaced |= drm_property_replace_blob(&crtc_state->clu, NULL);
 	replaced |= drm_property_replace_blob(&crtc_state->gamma_lut, blob);
 	crtc_state->color_mgmt_changed |= replaced;
 
