@@ -484,15 +484,22 @@ static int rcar_du_cmm_check(struct drm_crtc *crtc,
 			     struct drm_crtc_state *state)
 {
 	struct drm_property_blob *drm_lut = state->gamma_lut;
+	struct drm_property_blob *drm_clu = state->clu;
 	struct rcar_du_crtc *rcrtc = to_rcar_crtc(crtc);
 	struct device *dev = rcrtc->dev->dev;
 
-	if (!drm_lut)
+	if (!drm_lut || !drm_clu)
 		return 0;
 
 	/* We only accept fully populated LUT tables. */
-	if (drm_color_lut_size(drm_lut) != CM2_LUT_SIZE) {
+	if (drm_lut && drm_color_lut_size(drm_lut) != CM2_LUT_SIZE) {
 		dev_err(dev, "invalid gamma lut size: %zu bytes\n",
+			drm_lut->length);
+		return -EINVAL;
+	}
+
+	if (drm_clu && drm_color_lut_size(drm_clu) != CM2_CLU_SIZE) {
+		dev_err(dev, "invalid 3D-CLU size: %lu bytes\n",
 			drm_lut->length);
 		return -EINVAL;
 	}
@@ -503,6 +510,7 @@ static int rcar_du_cmm_check(struct drm_crtc *crtc,
 static void rcar_du_cmm_setup(struct drm_crtc *crtc)
 {
 	struct drm_property_blob *drm_lut = crtc->state->gamma_lut;
+	struct drm_property_blob *drm_clu = crtc->state->clu;
 	struct rcar_du_crtc *rcrtc = to_rcar_crtc(crtc);
 	struct rcar_cmm_config cmm_config = {};
 
@@ -511,6 +519,9 @@ static void rcar_du_cmm_setup(struct drm_crtc *crtc)
 
 	if (drm_lut)
 		cmm_config.lut.table = (struct drm_color_lut *)drm_lut->data;
+
+	if (drm_clu)
+		cmm_config.clu.table = (struct drm_color_lut *)drm_clu->data;
 
 	rcar_cmm_setup(rcrtc->cmm, &cmm_config);
 }
