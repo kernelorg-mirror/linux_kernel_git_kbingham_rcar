@@ -453,6 +453,13 @@ config VIDEO_MAX9286
 	  To compile this driver as a module, choose M here: the
 	  module will be called max9286.
 
+config VIDEO_VISION
+	tristate "VISION GMSL camera support"
+	depends on I2C && VIDEO_V4L2_SUBDEV_API && MEDIA_CONTROLLER
+	select V4L2_FWNODE
+	help
+	  This driver supports the Vision board based on GMSL cameras.
+
 comment "Video and audio decoders"
 
 config VIDEO_SAA717X
