@@ -591,6 +591,88 @@ static int max9286_get_fmt(struct v4l2_subdev *sd,
 	return 0;
 }
 
+static int max9286_get_frame_desc(struct v4l2_subdev *sd, unsigned int pad,
+				  struct v4l2_mbus_frame_desc *fd)
+{
+	struct max9286_priv *priv = sd_to_max9286(sd);
+	struct max9286_source *source;
+	unsigned int i = 0;
+
+	memset(fd, 0, sizeof(*fd));
+
+	for_each_source(priv, source) {
+		unsigned int index = to_index(priv, source);
+
+		fd->entry[i].stream = i;
+		fd->entry[i].bus.csi2.channel = index;
+		fd->entry[i].bus.csi2.data_type = 0x1e;
+		i++;
+	}
+
+	fd->type = V4L2_MBUS_FRAME_DESC_TYPE_CSI2;
+	fd->num_entries = priv->nsources;
+
+	return 0;
+}
+
+static int max9286_get_routing(struct v4l2_subdev *sd,
+			       struct v4l2_subdev_krouting *routing)
+{
+	struct max9286_priv *priv = sd_to_max9286(sd);
+	struct v4l2_subdev_route *r = routing->routes;
+	struct max9286_source *source;
+
+	/* There is one route per sink pad. */
+	if (routing->num_routes < priv->nsources) {
+		routing->num_routes = priv->nsources;
+		return -ENOSPC;
+	}
+
+	routing->num_routes = priv->nsources;
+
+	for_each_source(priv, source) {
+		unsigned int index = to_index(priv, source);
+
+		r->sink_pad = index;
+		r->sink_stream = 0;
+		r->source_pad = MAX9286_SRC_PAD;
+		r->source_stream = index;
+		r->flags = priv->route_mask & BIT(index) ?
+			V4L2_SUBDEV_ROUTE_FL_ACTIVE : 0;
+		r++;
+	}
+
+	return 0;
+}
+
+static int max9286_set_routing(struct v4l2_subdev *sd,
+			       struct v4l2_subdev_krouting *routing)
+{
+	struct max9286_priv *priv = sd_to_max9286(sd);
+	struct v4l2_subdev_route *r = routing->routes;
+	unsigned int i;
+
+	if (routing->num_routes > priv->nsources)
+		return -ENOSPC;
+
+	for (i = 0; i < routing->num_routes; i++) {
+		if (r->sink_pad >= MAX9286_SRC_PAD ||
+		    r->sink_stream != 0 ||
+		    r->source_pad != MAX9286_SRC_PAD ||
+		    r->source_stream != r->sink_pad)
+			return -EINVAL;
+
+		if (r->flags & V4L2_SUBDEV_ROUTE_FL_ACTIVE)
+			priv->route_mask |= BIT(r->sink_pad);
+		else
+			priv->route_mask &= ~BIT(r->sink_pad);
+
+		r++;
+	}
+
+	return 0;
+}
+
 static const struct v4l2_subdev_video_ops max9286_video_ops = {
 	.s_stream	= max9286_s_stream,
 };
@@ -599,6 +681,9 @@ static const struct v4l2_subdev_pad_ops max9286_pad_ops = {
 	.enum_mbus_code = max9286_enum_mbus_code,
 	.get_fmt	= max9286_get_fmt,
 	.set_fmt	= max9286_set_fmt,
+	.get_frame_desc = max9286_get_frame_desc,
+	.get_routing	= max9286_get_routing,
+	.set_routing	= max9286_set_routing,
 };
 
 static const struct v4l2_subdev_ops max9286_subdev_ops = {
