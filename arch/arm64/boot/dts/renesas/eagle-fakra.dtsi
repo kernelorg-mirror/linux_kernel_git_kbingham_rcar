@@ -17,10 +17,10 @@
 
 #include <dt-bindings/gpio/gpio.h>
 
-#define EAGLE_CAMERA0 "imi,rdacm20"
-#define EAGLE_CAMERA1 "imi,rdacm20"
-#define EAGLE_CAMERA2 "imi,rdacm20"
-#define EAGLE_CAMERA3 "imi,rdacm20"
+#define EAGLE_CAMERA0 "imi,rdacm21"
+#define EAGLE_CAMERA1 "imi,rdacm21"
+#define EAGLE_CAMERA2 "imi,rdacm21"
+#define EAGLE_CAMERA3 "imi,rdacm21"
 
 /* Define the endpoint links */
 #ifdef EAGLE_CAMERA0
