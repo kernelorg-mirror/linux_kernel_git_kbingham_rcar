@@ -812,55 +812,6 @@ err_regulator:
 	return ret;
 }
 
-static struct device_node *max9286_get_i2c_by_id(struct device_node *parent,
-						 u32 id)
-{
-	struct device_node *i2c_mux;
-	struct device_node *child;
-
-	/* Balance the of_node_put() performed by of_find_node_by_name() */
-	of_node_get(parent);
-
-	i2c_mux = of_find_node_by_name(parent, "i2c-mux");
-	if (!i2c_mux) {
-		printk("max9286: Failed to find i2c-mux node\n");
-		return NULL;
-	}
-
-	for_each_child_of_node(i2c_mux, child) {
-		u32 i2c_id = 0;
-
-		if (of_node_cmp(child->name, "i2c") != 0)
-			continue;
-		of_property_read_u32(child, "reg", &i2c_id);
-		if (id == i2c_id)
-			return child;
-	}
-
-	return NULL;
-}
-
-static int max9286_check_i2c_bus_by_id(struct device *dev, int id)
-{
-	struct device_node *i2c_np;
-
-	i2c_np = max9286_get_i2c_by_id(dev->of_node, id);
-	if (!i2c_np) {
-		dev_err(dev, "Failed to find corresponding i2c@%u\n", id);
-		return -ENODEV;
-	}
-
-	if (!of_device_is_available(i2c_np)) {
-		dev_dbg(dev, "Skipping port %u with disabled I2C bus\n", id);
-		of_node_put(i2c_np);
-		return -ENODEV;
-	}
-
-	of_node_put(i2c_np);
-
-	return 0;
-}
-
 static void max9286_cleanup_dt(struct max9286_priv *priv)
 {
 	struct max9286_source *source;
@@ -882,11 +833,44 @@ static void max9286_cleanup_dt(struct max9286_priv *priv)
 static int max9286_parse_dt(struct max9286_priv *priv)
 {
 	struct device *dev = &priv->client->dev;
+	struct device_node *i2c_mux;
+	struct device_node *child = NULL;
 	struct device_node *ep_np = NULL;
+	unsigned int i2c_mux_mask = 0;
 	int ret;
+
+	/* Balance the of_node_put() performed by of_find_node_by_name() */
+	of_node_get(dev->of_node);
+	i2c_mux = of_find_node_by_name(dev->of_node, "i2c-mux");
+	if (!i2c_mux) {
+		dev_err(dev, "Failed to find i2c-mux node\n");
+		return -EINVAL;
+	}
+
+	/* Identify which i2c-mux channels are enabled */
+	for_each_child_of_node(i2c_mux, child) {
+		u32 id = 0;
+
+		if (of_node_cmp(child->name, "i2c") != 0)
+			continue;
+
+		of_property_read_u32(child, "reg", &id);
+		if (id >= MAX9286_NUM_GMSL)
+			continue;
+
+		if (!of_device_is_available(child)) {
+			dev_dbg(dev, "Skipping port %u with disabled I2C bus\n", id);
+			continue;
+		}
+
+		i2c_mux_mask |= BIT(id);
+	}
+	of_node_put(child);
+	of_node_put(i2c_mux);
 
 	v4l2_async_notifier_init(&priv->notifier);
 
+	/* Parse the endpoints */
 	for_each_endpoint_of_node(dev->of_node, ep_np) {
 		struct max9286_source *source;
 		struct of_endpoint ep;
@@ -929,7 +913,7 @@ static int max9286_parse_dt(struct max9286_priv *priv)
 		}
 
 		/* Skip if the corresponding GMSL link is unavailable. */
-		if (max9286_check_i2c_bus_by_id(dev, ep.port))
+		if (!(i2c_mux_mask & BIT(ep.port)))
 			continue;
 
 		if (priv->sources[ep.port].fwnode) {
