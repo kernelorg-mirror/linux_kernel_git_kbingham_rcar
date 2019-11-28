@@ -144,7 +144,7 @@ struct max9286_priv {
 	struct media_pad pads[MAX9286_N_PADS];
 	struct regulator *regulator;
 	bool poc_enabled;
-	int streaming;
+	int mux_state;
 
 	struct i2c_mux_core *mux;
 	unsigned int mux_channel;
@@ -221,16 +221,39 @@ static int max9286_write(struct max9286_priv *priv, u8 reg, u8 val)
  * I2C Multiplexer
  */
 
+enum max9286_i2c_mux_state {
+	/*
+	 * The I2C Mux will enable only a single channel (both forward, and
+	 * reverse) at a time, and to reduce I2C bus bandwidth, it will only
+	 * reconfigure the channel when a write is requested to a different
+	 * channel.
+	 */
+	MAX9286_I2C_MUX_STATE_CHANNEL = 0,
+
+	/*
+	 * The I2C mux will be configured with all ports open. All I2C writes
+	 * will be transmitted to all remote I2C devices, and where multiple
+	 * devices have the same address, the write will be received by all of
+	 * them.
+	 */
+	MAX9286_I2C_MUX_STATE_OPEN,
+
+	/*
+	 * The I2C mux is configured with all ports open.
+	 *
+	 * No reconfiguration of the I2C mux channel select is required.
+	 */
+	MAX9286_I2C_MUX_STATE_DISABLE_SELECT,
+};
+
 static int max9286_i2c_mux_close(struct max9286_priv *priv)
 {
-	/* FIXME: See note in max9286_i2c_mux_select() */
-	if (priv->streaming)
-		return 0;
 	/*
 	 * Ensure that both the forward and reverse channel are disabled on the
-	 * mux, and that the channel ID is invalidated to ensure we reconfigure
-	 * on the next select call.
+	 * mux, and that the channel state and ID is invalidated to ensure we
+	 * reconfigure on the next max9286_i2c_mux_select() call.
 	 */
+	priv->mux_state = MAX9286_I2C_MUX_STATE_CHANNEL;
 	priv->mux_channel = -1;
 	max9286_write(priv, 0x0a, 0x00);
 	usleep_range(3000, 5000);
@@ -242,22 +265,18 @@ static int max9286_i2c_mux_select(struct i2c_mux_core *muxc, u32 chan)
 {
 	struct max9286_priv *priv = i2c_mux_priv(muxc);
 
-	/*
-	 * FIXME: This state keeping is a hack and do the job. It should
-	 * be should be reworked. One option to consider is that once all
-	 * cameras are programmed the mux selection logic should be disabled
-	 * and all all reverse and forward channels enable all the time.
-	 *
-	 * In any case this logic with a int that have two states should be
-	 * reworked!
-	 */
-	if (priv->streaming == 1) {
-		max9286_write(priv, 0x0a, 0xff);
-		priv->streaming = 2;
+	/* channel select is disabled when configured in the opened state. */
+	if (priv->mux_state == MAX9286_I2C_MUX_STATE_DISABLE_SELECT)
 		return 0;
-	} else if (priv->streaming == 2) {
+
+	if (priv->mux_state == MAX9286_I2C_MUX_STATE_OPEN) {
+		/* Open all channels on the MAX9286 */
+		max9286_write(priv, 0x0a, 0xff);
+		priv->mux_state = MAX9286_I2C_MUX_STATE_DISABLE_SELECT;
 		return 0;
 	}
+
+	/* Handling for MAX9286_I2C_MUX_STATE_CHANNEL */
 
 	if (priv->mux_channel == chan)
 		return 0;
@@ -441,8 +460,7 @@ static int max9286_s_stream(struct v4l2_subdev *sd, int enable)
 	int ret;
 
 	if (enable) {
-		/* FIXME: See note in max9286_i2c_mux_select() */
-		priv->streaming = 1;
+		priv->mux_state = MAX9286_I2C_MUX_STATE_OPEN;
 
 		/* Start all cameras. */
 		for_each_source(priv, source) {
@@ -490,8 +508,7 @@ static int max9286_s_stream(struct v4l2_subdev *sd, int enable)
 		for_each_source(priv, source)
 			v4l2_subdev_call(source->sd, video, s_stream, 0);
 
-		/* FIXME: See note in max9286_i2c_mux_select() */
-		priv->streaming = 0;
+		priv->mux_state = MAX9286_I2C_MUX_STATE_CHANNEL;
 	}
 
 	return 0;
