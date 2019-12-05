@@ -240,9 +240,14 @@ static int gpio_regulator_probe(struct platform_device *pdev)
 	if (np) {
 		config = of_get_gpio_regulator_config(dev, np,
 						      &drvdata->desc);
-		if (IS_ERR(config))
+
+		if (IS_ERR(config)) {
+			dev_err(dev, "OF_GET_GPIO_REGULATOR_CONFIG %d\n", PTR_ERR(config));
 			return PTR_ERR(config);
+		}
 	}
+
+	dev_err(dev, "Probing GPIO Regulator\n");
 
 	drvdata->desc.name = devm_kstrdup(dev, config->supply_name, GFP_KERNEL);
 	if (drvdata->desc.name == NULL) {
@@ -254,6 +259,7 @@ static int gpio_regulator_probe(struct platform_device *pdev)
 				       GFP_KERNEL);
 	if (!drvdata->gpiods)
 		return -ENOMEM;
+
 	for (i = 0; i < config->ngpios; i++) {
 		drvdata->gpiods[i] = devm_gpiod_get_index(dev,
 							  NULL,
