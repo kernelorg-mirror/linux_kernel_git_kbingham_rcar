@@ -332,7 +332,20 @@
 		/* eagle-pca9654-max9286-pwdn */
 		enable-gpios = <&io_expander 0 GPIO_ACTIVE_HIGH>;
 
-		poc-supply = <&poc_12v>;
+		//poc-supply = <&poc_12v>;
+
+		/*
+		 * We can not add a regulator to control this line, and the delay
+		 * as it would introduce a circular dependency at probe time.
+		 * Instead the line is pulled with a gpio-hog, and the required
+		 * delay is introduced by a dummy-regulator on &poc_12v.
+		 */
+		camvdd_en {
+			gpio-hog;
+			gpios = <0 0>;
+			output-low;
+			line-name = "CSI0_CAMVDD_EN";
+		};
 
 		ports {
 			#address-cells = <1>;
