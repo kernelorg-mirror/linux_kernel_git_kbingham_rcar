@@ -1772,6 +1772,8 @@ static struct regulator_dev *regulator_dev_lookup(struct device *dev,
 			if (r)
 				return r;
 
+			dev_err(dev, "1728 regulator_dev_lookup: We have a node, but there is no device");
+
 			/*
 			 * We have a node, but there is no device.
 			 * assume it has not registered yet.
@@ -1920,8 +1922,11 @@ struct regulator *_regulator_get(struct device *dev, const char *id,
 		 * If regulator_dev_lookup() fails with error other
 		 * than -ENODEV our job here is done, we simply return it.
 		 */
-		if (ret != -ENODEV)
+		if (ret != -ENODEV) {
+			dev_warn(dev,
+				 "__regulator_get returning %d\n", ret);
 			return ERR_PTR(ret);
+		}
 
 		if (!have_full_constraints()) {
 			dev_warn(dev,
