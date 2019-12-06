@@ -900,12 +900,21 @@ static void max9286_gpio_set(struct gpio_chip *chip,
 	else
 		priv->gpio_state &= ~BIT(offset);
 
+	dev_err(&priv->client->dev,
+		"GPIOSET: Offset %d, Value %d gpio_state = 0x%lx",
+		offset, value, MAX9286_0X0F_RESERVED | priv->gpio_state);
+
 	max9286_write(priv, 0x0f, MAX9286_0X0F_RESERVED | priv->gpio_state);
 }
 
 static int max9286_gpio_get(struct gpio_chip *chip, unsigned int offset)
 {
 	struct max9286_priv *priv = gpiochip_get_data(chip);
+
+	dev_err(&priv->client->dev,
+		"GPIOSET: Offset %d, Value %d gpio_state = 0x%lx",
+		offset, priv->gpio_state & BIT(offset),
+		MAX9286_0X0F_RESERVED | priv->gpio_state);
 
 	return priv->gpio_state & BIT(offset);
 }
@@ -1090,6 +1099,7 @@ static int max9286_parse_dt(struct max9286_priv *priv)
 	}
 
 	/* Identify which i2c-mux channels are enabled */
+	//for_each_child_of_node(i2c_mux, node) {
 	for_each_child_of_node(i2c_mux, node) {
 		u32 id = 0;
 
@@ -1228,6 +1238,11 @@ static int max9286_probe(struct i2c_client *client)
 	if (ret)
 		return ret;
 
+	if (!priv->gpiod_pwdn) {
+		dev_err(&client->dev, "No pwdn line");
+		return -ENODEV;
+	}
+
 	/*
 	 * It is possible to set up the power regulator from the GPIO lines,
 	 * so it needs to be set up early.
@@ -1250,7 +1265,11 @@ static int max9286_probe(struct i2c_client *client)
 			dev_err(&client->dev,
 				"Unable to get PoC regulator (%ld)\n",
 				PTR_ERR(priv->regulator));
+		else {
+			WARN_ONCE(1, "Panic at the disco");
+		}
 		ret = PTR_ERR(priv->regulator);
+		priv->regulator = NULL;
 		goto err_free;
 	}
 
@@ -1280,6 +1299,8 @@ static int max9286_probe(struct i2c_client *client)
 
 	/* Add any userspace support before we return early. */
 	max9286_debugfs_init(priv);
+
+	dev_err(&client->dev, "Pre-init");
 
 	ret = max9286_init(&client->dev);
 	if (ret < 0)
