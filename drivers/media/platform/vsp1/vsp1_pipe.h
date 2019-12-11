@@ -108,6 +108,8 @@ struct vsp1_partition {
  * @partitions: The number of partitions used to process one frame
  * @partition: The current partition for configuration to process
  * @part_table: The pre-calculated partitions used by the pipeline
+ * @dst_cnt: display interrupt count
+ * @dst_wait: wait queue used to display interrupt signal
  */
 struct vsp1_pipeline {
 	struct media_pipeline pipe;
@@ -148,6 +150,10 @@ struct vsp1_pipeline {
 	unsigned int partitions;
 	struct vsp1_partition *partition;
 	struct vsp1_partition *part_table;
+
+	unsigned int dst_cnt;
+	wait_queue_head_t dst_wait;
+
 };
 
 void vsp1_pipeline_reset(struct vsp1_pipeline *pipe);

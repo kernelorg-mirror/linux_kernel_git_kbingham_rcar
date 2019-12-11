@@ -69,6 +69,10 @@ static irqreturn_t vsp1_irq_handler(int irq, void *data)
 		if (status & VI6_WPF_IRQ_STA_UND) {
 			dev_err(vsp1->dev, "WPF[%d] Underflow error\n", i);
 			ret = IRQ_HANDLED;
+			if (wpf->entity.pipe->dst_cnt) {
+				if (--wpf->entity.pipe->dst_cnt == 0)
+					wake_up(&wpf->entity.pipe->dst_wait);
+			}
 		}
 	}
 
