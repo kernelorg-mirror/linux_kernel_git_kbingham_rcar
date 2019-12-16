@@ -1058,8 +1058,23 @@ static int max9286_setup(struct max9286_priv *priv)
 	 *
 	 * - Enable custom reverse channel configuration (through register 0x3f)
 	 *   and set the first pulse length to 35 clock cycles.
-	 * - Increase the reverse channel amplitude to 170mV to accommodate the
-	 *   high threshold enabled by the serializer driver.
+	 * - FIXME: Set the reverse channel amplitude to 70mV ( + 100 for
+	 *   RDACM20)
+	 *
+	 *   The RDACM21 and RDACM20 camera modules this driver has been
+	 *   tested against would need to be handled differently here.
+	 *
+	 *   RDACM20 has an MCU which performs an initial programming, most
+	 *   probably enabling the reverse channel and high-threshold
+	 *   compensation during startup. It needs then to be interoperated
+	 *   with the deserializer reverse channel amplitude already compensated
+	 *   to 170mV (70mV + 100 mV).
+	 *
+	 *   RDACM21 does not need that and reverse channel could have been
+	 *   compensated after all serializers have probed.
+	 *
+	 *   Without this early compensation RDACM20 fails to probe, but RDACM21
+	 *   shows slightly less reliable communications.
 	 */
 	max9286_write(priv, 0x3f, MAX9286_EN_REV_CFG | MAX9286_REV_FLEN(35));
 	max9286_write(priv, 0x3b, MAX9286_REV_TRF(1) | MAX9286_REV_AMP(70) |
