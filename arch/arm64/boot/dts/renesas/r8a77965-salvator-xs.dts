@@ -89,3 +89,5 @@
 	dais = <&rsnd_port0	/* ak4613 */
 		&rsnd_port1>;	/* HDMI0  */
 };
+
+#include "salvator-xs-max9286-rdacm21.dtsi"
