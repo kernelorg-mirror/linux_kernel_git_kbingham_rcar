@@ -1255,6 +1255,10 @@ static int max9286_probe(struct i2c_client *client)
 	gpiod_set_consumer_name(priv->gpiod_pwdn, "max9286-pwdn");
 	gpiod_set_value_cansleep(priv->gpiod_pwdn, 1);
 
+	/* Wait at least 4ms before the I2C lines latch to the address */
+	if (priv->gpiod_pwdn)
+		usleep_range(4000, 5000);
+
 	/*
 	 * It is possible to set up the power regulator from the GPIO lines,
 	 * so it needs to be set up early.
