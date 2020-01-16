@@ -10,7 +10,7 @@
 /*
  * MAX9286 A
  */
-#define MAXIM_CAMERA0 "imi,rdacm20"
+//#define MAXIM_CAMERA0 "imi,rdacm20"
 //#define MAXIM_CAMERA1 "imi,rdacm20"
 //#define MAXIM_CAMERA2 "imi,rdacm20"
 //#define MAXIM_CAMERA3 "imi,rdacm20"
@@ -98,14 +98,17 @@
 			csi40_in: endpoint {
 				clock-lanes = <0>;
 				data-lanes = <1 2 3 4>;
-				remote-endpoint = <&max9286_out0>;
+				remote-endpoint = <&vision_ep>;
 			};
 		};
 	};
 };
 
+
+
+
 &csi41 {
-	status = "okay";
+	status = "disabled";
 
 	ports {
 		#address-cells = <1>;
@@ -124,8 +127,26 @@
 };
 
 &i2c4 {
+
+	
+	vision: camera-sensor@4c {
+		compatible = "sensing,vision";
+		reg = <0x4c>;
+		camera-reg = <0x51>;
+		poc-supply = <&poc_12v>;
+
+		port {
+			vision_ep: endpoint {
+				clock-lanes = <1>;
+				data-lanes = <0 2 3 4>;
+				remote-endpoint = <&csi40_in>;
+			};
+		};
+	};
+
 	gmsl-deserializer@4c {
-		compatible = "maxim,max9286";
+		status = "disabled";
+		compatible = "not-maxim,max9286";
 		reg = <0x4c>;
 		poc-supply = <&poc_12v>;
 
@@ -260,7 +281,8 @@
 	};
 
 	gmsl-deserializer@6c {
-		compatible = "maxim,max9286";
+		status = "disabled";
+		compatible = "not-maxim,max9286";
 		reg = <0x6c>;
 		poc-supply = <&poc_12v>;
 
