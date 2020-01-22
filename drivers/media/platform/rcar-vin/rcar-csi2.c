@@ -483,7 +483,7 @@ static int rcsi2_start_receiver(struct rcar_csi2 *priv)
 	unsigned int i;
 	int mbps, ret;
 
-	dev_dbg(priv->dev, "Input size (%ux%u%c)\n",
+	dev_err(priv->dev, "Input size (%ux%u%c)\n",
 		priv->mf.width, priv->mf.height,
 		priv->mf.field == V4L2_FIELD_NONE ? 'p' : 'i');
 
@@ -749,7 +749,7 @@ static int rcsi2_notify_bound(struct v4l2_async_notifier *notifier,
 
 	priv->remote = subdev;
 
-	dev_dbg(priv->dev, "Bound %s pad: %d\n", subdev->name, pad);
+	dev_err(priv->dev, "Bound %s pad: %d\n", subdev->name, pad);
 
 	return media_create_pad_link(&subdev->entity, pad,
 				     &priv->subdev.entity, 0,
@@ -765,7 +765,7 @@ static void rcsi2_notify_unbind(struct v4l2_async_notifier *notifier,
 
 	priv->remote = NULL;
 
-	dev_dbg(priv->dev, "Unbind %s\n", subdev->name);
+	dev_err(priv->dev, "Unbind %s\n", subdev->name);
 }
 
 static const struct v4l2_async_notifier_operations rcar_csi2_notify_ops = {
@@ -849,7 +849,7 @@ static int rcsi2_parse_dt(struct rcar_csi2 *priv)
 
 	priv->notifier.ops = &rcar_csi2_notify_ops;
 
-	dev_dbg(priv->dev, "Found '%pOF'\n",
+	dev_err(priv->dev, "Found '%pOF'\n",
 		to_of_node(priv->asd.match.fwnode));
 
 	ret = v4l2_async_subdev_notifier_register(&priv->subdev,
