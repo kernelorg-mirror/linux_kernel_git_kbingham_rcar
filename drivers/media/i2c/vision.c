@@ -129,7 +129,7 @@
 #define ROUTE_MASK			BIT(0)
 #define CSI2_DATA_LANES			4
 
-struct vision_device {
+struct max9286_device {
 	struct i2c_client		*client; /* Client is MAX9286 */
 	struct i2c_client		*max96705;
 	struct i2c_client		*ap0202;
@@ -139,19 +139,19 @@ struct vision_device {
 };
 
 //TODO: remove
-static int ap0202_configure(struct vision_device *dev);
+static int ap0202_configure(struct max9286_device *dev);
 
-static inline struct vision_device *sd_to_vision(struct v4l2_subdev *sd)
+static inline struct max9286_device *sd_to_vision(struct v4l2_subdev *sd)
 {
-	return container_of(sd, struct vision_device, sd);
+	return container_of(sd, struct max9286_device, sd);
 }
 
-static inline struct vision_device *i2c_to_vision(struct i2c_client *client)
+static inline struct max9286_device *i2c_to_vision(struct i2c_client *client)
 {
 	return sd_to_vision(i2c_get_clientdata(client));
 }
 
-static int max9286_read(struct vision_device *dev, u8 reg)
+static int max9286_read(struct max9286_device *dev, u8 reg)
 {
 	int ret;
 
@@ -164,7 +164,7 @@ static int max9286_read(struct vision_device *dev, u8 reg)
 	return ret;
 }
 
-static int max9286_write(struct vision_device *dev, u8 reg, u8 val)
+static int max9286_write(struct max9286_device *dev, u8 reg, u8 val)
 {
 	int ret;
 
@@ -177,7 +177,7 @@ static int max9286_write(struct vision_device *dev, u8 reg, u8 val)
 	return ret;
 }
 
-static int max96705_write(struct vision_device *dev, u8 reg, u8 val)
+static int max96705_write(struct max9286_device *dev, u8 reg, u8 val)
 {
 	int ret;
 
@@ -190,7 +190,7 @@ static int max96705_write(struct vision_device *dev, u8 reg, u8 val)
 	return ret;
 }
 
-static int max96705_read(struct vision_device *dev, u8 reg)
+static int max96705_read(struct max9286_device *dev, u8 reg)
 {
 	int ret;
 
@@ -203,7 +203,7 @@ static int max96705_read(struct vision_device *dev, u8 reg)
 	return ret;
 }
 
-static int ap0202_write(struct vision_device *dev, u16 reg, u16 val)
+static int ap0202_write(struct max9286_device *dev, u16 reg, u16 val)
 {
 	u8 regbuf[4];
 	int ret;
@@ -223,7 +223,7 @@ static int ap0202_write(struct vision_device *dev, u16 reg, u16 val)
 	return 0;
 }
 
-static int ap0202_read(struct vision_device *dev, u16 reg)
+static int ap0202_read(struct max9286_device *dev, u16 reg)
 {
 	u8 regbuf[2];
 	int ret;
@@ -252,7 +252,7 @@ static int ap0202_read(struct vision_device *dev, u16 reg)
 	return (regbuf[1] | (regbuf[0] << 8));
 }
 
-static int max9286_check_video_links(struct vision_device *dev)
+static int max9286_check_video_links(struct max9286_device *dev)
 {
 	unsigned int i;
 	int ret;
@@ -299,7 +299,7 @@ static int max9286_check_video_links(struct vision_device *dev)
 	return 0;
 }
 
-void print_max9286_regs(struct vision_device *dev)
+void print_max9286_regs(struct max9286_device *dev)
 {
        int i;
 
@@ -307,7 +307,7 @@ void print_max9286_regs(struct vision_device *dev)
                pr_info("MAX9286: 0x%x: 0x%x", i, max9286_read(dev, i));
 }
 
-void print_max96705_regs(struct vision_device *dev)
+void print_max96705_regs(struct max9286_device *dev)
 {
        int i;
 
@@ -315,9 +315,9 @@ void print_max96705_regs(struct vision_device *dev)
                pr_info("MAX96705: 0x%x: 0x%x", i, max96705_read(dev, i));
 }
 
-static int vision_s_stream(struct v4l2_subdev *sd, int enable)
+static int max9286_s_stream(struct v4l2_subdev *sd, int enable)
 {
-	struct vision_device *dev = sd_to_vision(sd);
+	struct max9286_device *dev = sd_to_vision(sd);
 	unsigned int i;
 	bool sync = false;
 	int ret;
@@ -362,7 +362,7 @@ static int vision_s_stream(struct v4l2_subdev *sd, int enable)
 	return 0;
 }
 
-static int vision_enum_mbus_code(struct v4l2_subdev *sd,
+static int max9286_enum_mbus_code(struct v4l2_subdev *sd,
 				  struct v4l2_subdev_pad_config *cfg,
 				  struct v4l2_subdev_mbus_code_enum *code)
 {
@@ -371,7 +371,7 @@ static int vision_enum_mbus_code(struct v4l2_subdev *sd,
 	return 0;
 }
 
-static int vision_get_fmt(struct v4l2_subdev *sd,
+static int max9286_get_fmt(struct v4l2_subdev *sd,
 			   struct v4l2_subdev_pad_config *cfg,
 			   struct v4l2_subdev_format *format)
 {
@@ -392,22 +392,22 @@ static int vision_get_fmt(struct v4l2_subdev *sd,
 	return 0;
 }
 
-static struct v4l2_subdev_video_ops vision_video_ops = {
-	.s_stream	= vision_s_stream,
+static struct v4l2_subdev_video_ops max9286_video_ops = {
+	.s_stream	= max9286_s_stream,
 };
 
-static const struct v4l2_subdev_pad_ops vision_subdev_pad_ops = {
-	.enum_mbus_code = vision_enum_mbus_code,
-	.get_fmt	= vision_get_fmt,
-	.set_fmt	= vision_get_fmt,
+static const struct v4l2_subdev_pad_ops max9286_subdev_pad_ops = {
+	.enum_mbus_code = max9286_enum_mbus_code,
+	.get_fmt	= max9286_get_fmt,
+	.set_fmt	= max9286_get_fmt,
 };
 
-static struct v4l2_subdev_ops vision_subdev_ops = {
-	.video		= &vision_video_ops,
-	.pad		= &vision_subdev_pad_ops,
+static struct v4l2_subdev_ops max9286_subdev_ops = {
+	.video		= &max9286_video_ops,
+	.pad		= &max9286_subdev_pad_ops,
 };
 
-static void max9286_configure_i2c(struct vision_device *dev, bool localack)
+static void max9286_configure_i2c(struct max9286_device *dev, bool localack)
 {
 	u8 config = MAX9286_I2CSLVSH_469NS_234NS | MAX9286_I2CSLVTO_1024US |
 		    MAXIM_I2C_SPEED;
@@ -438,7 +438,7 @@ static const u8 link_order[] = {
 	(3 << 6) | (2 << 4) | (1 << 2) | (0 << 0), /* 3210 */
 };
 
-static int max9286_configure(struct vision_device *dev)
+static int max9286_configure(struct max9286_device *dev)
 {
 	int ret;
 
@@ -505,7 +505,7 @@ static int max9286_configure(struct vision_device *dev)
 	return max9286_write(dev, 0x1c, 0xf4);
 }
 
-static int max96705_configure_address(struct vision_device *dev, u8 addr)
+static int max96705_configure_address(struct max9286_device *dev, u8 addr)
 {
 	int ret;
 
@@ -522,7 +522,7 @@ static int max96705_configure_address(struct vision_device *dev, u8 addr)
 	return 0;
 }
 
-static int max96705_configure(struct vision_device *dev)
+static int max96705_configure(struct max9286_device *dev)
 {
 	int ret;
 
@@ -567,7 +567,7 @@ static int max96705_configure(struct vision_device *dev)
 	return 0;
 }
 
-static int ap0202_configure(struct vision_device *dev)
+static int ap0202_configure(struct max9286_device *dev)
 {
 	int ret;
 
@@ -686,7 +686,7 @@ static int ap0202_configure(struct vision_device *dev)
 	return 0;
 }
 
-static int vision_initialize(struct vision_device *dev)
+static int max9286_initialize(struct max9286_device *dev)
 {
 	u32 addr;
 	int ret;
@@ -763,9 +763,9 @@ static int vision_initialize(struct vision_device *dev)
 	return 0;
 }
 
-static int vision_probe(struct i2c_client *client)
+static int max9286_probe(struct i2c_client *client)
 {
-	struct vision_device *dev;
+	struct max9286_device *dev;
 	struct fwnode_handle *ep;
 	int ret;
 
@@ -790,7 +790,7 @@ static int vision_probe(struct i2c_client *client)
 	}
 
 	/* Initialize the hardware. */
-	ret = vision_initialize(dev);
+	ret = max9286_initialize(dev);
 	if (ret < 0)
 		goto error;
 
@@ -805,7 +805,7 @@ static int vision_probe(struct i2c_client *client)
 	if (ret)
 		goto error_free_ctrls;
 
-	v4l2_i2c_subdev_init(&dev->sd, client, &vision_subdev_ops);
+	v4l2_i2c_subdev_init(&dev->sd, client, &max9286_subdev_ops);
 	dev->sd.flags |= V4L2_SUBDEV_FL_HAS_DEVNODE;
 
 	dev->pad.flags = MEDIA_PAD_FL_SOURCE;
@@ -838,9 +838,9 @@ error:
 	return ret;
 }
 
-static int vision_remove(struct i2c_client *client)
+static int max9286_remove(struct i2c_client *client)
 {
-	struct vision_device *dev = i2c_to_vision(client);
+	struct max9286_device *dev = i2c_to_vision(client);
 
 	fwnode_handle_put(dev->sd.fwnode);
 	v4l2_async_unregister_subdev(&dev->sd);
@@ -851,31 +851,31 @@ static int vision_remove(struct i2c_client *client)
 	return 0;
 }
 
-static void vision_shutdown(struct i2c_client *client)
+static void max9286_shutdown(struct i2c_client *client)
 {
-	struct vision_device *dev = i2c_to_vision(client);
+	struct max9286_device *dev = i2c_to_vision(client);
 
 	/* make sure stream off during shutdown (reset/reboot) */
-	vision_s_stream(&dev->sd, 0);
+	max9286_s_stream(&dev->sd, 0);
 }
 
-static const struct of_device_id vision_of_ids[] = {
+static const struct of_device_id max9286_of_ids[] = {
 	{ .compatible = "sensing,vision", },
 	{ }
 };
-MODULE_DEVICE_TABLE(of, vision_of_ids);
+MODULE_DEVICE_TABLE(of, max9286_of_ids);
 
-static struct i2c_driver vision_i2c_driver = {
+static struct i2c_driver max9286_i2c_driver = {
 	.driver	= {
 		.name	= "vision",
-		.of_match_table = vision_of_ids,
+		.of_match_table = max9286_of_ids,
 	},
-	.probe_new	= vision_probe,
-	.remove		= vision_remove,
-	.shutdown	= vision_shutdown,
+	.probe_new	= max9286_probe,
+	.remove		= max9286_remove,
+	.shutdown	= max9286_shutdown,
 };
 
-module_i2c_driver(vision_i2c_driver);
+module_i2c_driver(max9286_i2c_driver);
 
 MODULE_DESCRIPTION("GMSL Camera driver for AR0231");
 MODULE_AUTHOR("Manivannan Sadhasivam");
