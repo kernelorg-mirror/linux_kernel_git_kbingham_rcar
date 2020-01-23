@@ -753,6 +753,7 @@ static int max9286_initialize(struct max9286_device *dev)
 
 	mdelay(5);
 
+#if 0
 	/* Configure the ISP */
 	ret = ap0202_configure(dev);
 	if (ret < 0) {
@@ -766,6 +767,7 @@ static int max9286_initialize(struct max9286_device *dev)
 	pr_info("0xCAE6: %04x\n", ap0202_read(dev, 0xcae6));
 
 	pr_info("Configured AP0202!!");
+#endif
 
 	max9286_configure_i2c(dev, false);
 
