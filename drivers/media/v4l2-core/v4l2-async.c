@@ -71,6 +71,33 @@ static bool match_devname(struct v4l2_subdev *sd,
 
 static bool match_fwnode(struct v4l2_subdev *sd, struct v4l2_async_subdev *asd)
 {
+	struct fwnode_handle *asd_fwnode = asd->match.fwnode;
+	struct fwnode_handle *sd_parent, *asd_parent;
+
+	sd_parent = fwnode_graph_get_port_parent(sd->fwnode);
+	asd_parent = fwnode_graph_get_port_parent(asd_fwnode);
+
+	if (sd->fwnode == asd_fwnode) {
+		pr_err("Normal match");
+		return true;
+	}
+
+	if (sd->fwnode == asd_parent) {
+		pr_err("Matching %pfwf to %pfwf", sd->fwnode, asd_parent);
+		return true;
+	}
+
+	if (sd_parent == asd_fwnode) {
+		pr_err("Matching %pfwf to %pfwf", sd_parent, asd_fwnode);
+		return true;
+	}
+
+#if 0
+	return sd->fwnode == asd_fwnode ||
+	       sd->fwnode == asd_parent ||
+	       sd_parent == asd_fwnode;
+#endif
+
 	return sd->fwnode == asd->match.fwnode;
 }
 
