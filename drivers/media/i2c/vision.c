@@ -276,7 +276,7 @@ static int max9286_check_video_links(struct max9286_device *dev)
 	if (i == 10) {
 		dev_err(&dev->client->dev,
 			"Unable to detect video links 0x49: 0x%02x\n", ret);
-		return -EIO;
+		//return -EIO;
 	}
 
 	/* Make sure all enabled links are locked (4ms max). */
@@ -293,7 +293,7 @@ static int max9286_check_video_links(struct max9286_device *dev)
 
 	if (i == 10) {
 		dev_err(&dev->client->dev, "Not all enabled links locked\n");
-		return -EIO;
+		//return -EIO;
 	}
 
 	return 0;
@@ -313,6 +313,12 @@ void print_max96705_regs(struct max9286_device *dev)
 
         for (i = 0x00; i <= 0xff; i++)
                pr_info("MAX96705: 0x%x: 0x%x", i, max96705_read(dev, i));
+}
+
+static void dump_registers(struct max9286_device *dev)
+{
+	print_max9286_regs(dev);
+	print_max96705_regs(dev);
 }
 
 static int max9286_s_stream(struct v4l2_subdev *sd, int enable)
@@ -347,6 +353,9 @@ static int max9286_s_stream(struct v4l2_subdev *sd, int enable)
 		if (!sync) {
 			dev_err(&dev->client->dev,
 				"Failed to get frame synchronization\n");
+
+			dump_registers(dev);
+
 			return -EINVAL;
 		}
 
