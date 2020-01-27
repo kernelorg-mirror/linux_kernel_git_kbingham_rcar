@@ -416,6 +416,38 @@ static struct v4l2_subdev_ops max9286_subdev_ops = {
 	.pad		= &max9286_subdev_pad_ops,
 };
 
+static void max9286_i2c_mux_configure(struct max9286_device *dev, u8 conf)
+{
+        max9286_write(dev, 0x0a, conf);
+
+        /*
+         * We must sleep after any change to the forward or reverse channel
+         * configuration.
+         */
+        usleep_range(3000, 5000);
+}
+
+static void max9286_i2c_mux_open(struct max9286_device *dev)
+{
+        /* Open all channels on the MAX9286 */
+        max9286_i2c_mux_configure(dev, 0xff);
+
+//        priv->mux_open = true;
+}
+
+static void max9286_i2c_mux_close(struct max9286_device *dev)
+{
+        /*
+         * Ensure that both the forward and reverse channel are disabled on the
+         * mux, and that the channel ID is invalidated to ensure we reconfigure
+         * on the next max9286_i2c_mux_select() call.
+         */
+        max9286_i2c_mux_configure(dev, 0x00);
+
+//        priv->mux_open = false;
+//        priv->mux_channel = -1;
+}
+
 static void max9286_configure_i2c(struct max9286_device *dev, bool localack)
 {
 	u8 config = MAX9286_I2CSLVSH_469NS_234NS | MAX9286_I2CSLVTO_1024US |
@@ -459,11 +491,34 @@ static int max9286_configure(struct max9286_device *dev)
 
 	mdelay(5);
 
+	/*
+	 * Set the I2C bus speed.
+	 *
+	 * Enable I2C Local Acknowledge during the probe sequences of the camera
+	 * only. This should be disabled after the mux is initialised.
+	 */
+	max9286_configure_i2c(dev, true);
+
+        /*
+         * Reverse channel setup.
+         *
+         * - Enable custom reverse channel configuration (through register 0x3f)
+         *   and set the first pulse length to 35 clock cycles.
+         * - Increase the reverse channel amplitude to 170mV to accommodate the
+         *   high threshold enabled by the serializer driver.
+         */
+        max9286_write(dev, 0x3f, MAX9286_EN_REV_CFG | MAX9286_REV_FLEN(35));
+        max9286_write(dev, 0x3b, MAX9286_REV_TRF(1) | MAX9286_REV_AMP(70) |
+                      MAX9286_REV_AMP_X);
+
+
+/* Mani's configure_i2c() value
 	ret = max9286_write(dev, 0x34, 0xb6);
 	if (ret < 0) {
 		dev_err(&dev->client->dev, "Unable to configure MAX9286\n");
 		return ret;
 	}
+*/
 
 	usleep_range(5000, 8000);
 	ret = max9286_write(dev, 0x15, 0x03);
@@ -831,6 +886,9 @@ static int max9286_probe(struct i2c_client *client)
 		goto error_free_ctrls;
 
 	pr_info("Vision driver registered\n");
+
+	/* Leave the mux channels open. */
+	max9286_i2c_mux_open(dev);
 
 	return 0;
 
