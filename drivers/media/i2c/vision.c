@@ -11,6 +11,8 @@
 #include <linux/slab.h>
 #include <linux/videodev2.h>
 
+#include <linux/regulator/consumer.h>
+
 #include <media/v4l2-async.h>
 #include <media/v4l2-ctrls.h>
 #include <media/v4l2-subdev.h>
@@ -136,6 +138,8 @@ struct max9286_device {
 	struct v4l2_subdev		sd;
 	struct media_pad		pad;
 	struct v4l2_ctrl_handler	ctrls;
+
+	struct regulator 		*regulator; /* PoC */
 };
 
 //TODO: remove
@@ -759,6 +763,27 @@ static int max9286_initialize(struct max9286_device *dev)
 					 &addr);
 	if (ret < 0) {
 		dev_err(&dev->client->dev, "Invalid DT reg property\n");
+		return ret;
+	}
+
+	dev->regulator = regulator_get(&dev->client->dev, "poc");
+	if (IS_ERR(dev->regulator)) {
+		if (PTR_ERR(dev->regulator) != -EPROBE_DEFER)
+		    dev_err(&dev->client->dev,
+			    "Unable to get PoC regulator (%ld)\n",
+		    PTR_ERR(dev->regulator));
+
+		dev_err(&dev->client->dev, "Didn't get PoC regulator (%ld)\n", PTR_ERR(dev->regulator));
+		ret = PTR_ERR(dev->regulator);
+		dev->regulator = NULL;
+
+		return ret;
+	}
+
+	/* Bring up any Power Regulators for the Power over Coax */
+	ret = regulator_enable(dev->regulator);
+	if (ret < 0) {
+		dev_err(&dev->client->dev, "Unable to turn PoC on\n");
 		return ret;
 	}
 
