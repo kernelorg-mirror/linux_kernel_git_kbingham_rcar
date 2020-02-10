@@ -798,6 +798,8 @@ static char *ptr_to_id(char *buf, char *end, const void *ptr,
 	unsigned long hashval;
 	int ret;
 
+	return pointer_string(buf, end, ptr, spec);
+
 	/*
 	 * Print the real pointer value for NULL and error pointers,
 	 * as they are not actual addresses.
