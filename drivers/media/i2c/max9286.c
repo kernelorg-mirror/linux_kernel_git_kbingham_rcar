@@ -399,6 +399,14 @@ static int max9286_i2c_mux_select(struct i2c_mux_core *muxc, u32 chan)
 
 	priv->mux_channel = chan;
 
+	pr_err("Selecting channel %d/%d", chan, priv->nsources);
+
+	/* Handle special 'broadcast' channel for scanning */
+	if (chan == MAX9286_NUM_GMSL) {
+		max9286_i2c_mux_configure(priv, 0xff);
+		return 0;
+	}
+
 	max9286_i2c_mux_configure(priv,
 				  MAX9286_FWDCCEN(chan) |
 				  MAX9286_REVCCEN(chan));
@@ -416,13 +424,14 @@ static int max9286_i2c_mux_init(struct max9286_priv *priv)
 		return -ENODEV;
 
 	priv->mux = i2c_mux_alloc(priv->client->adapter, &priv->client->dev,
-				  priv->nsources, 0, I2C_MUX_LOCKED,
+				  priv->nsources + 1, 0, I2C_MUX_LOCKED,
 				  max9286_i2c_mux_select, NULL);
 	if (!priv->mux)
 		return -ENOMEM;
 
 	priv->mux->priv = priv;
 
+	/* Only add adapters for camera's which are configured */
 	for_each_source(priv, source) {
 		unsigned int index = to_index(priv, source);
 
@@ -430,6 +439,11 @@ static int max9286_i2c_mux_init(struct max9286_priv *priv)
 		if (ret < 0)
 			goto error;
 	}
+
+	/* Create a broadcast mux node (open all channels) */
+	ret = i2c_mux_add_adapter(priv->mux, 0, MAX9286_NUM_GMSL, 0);
+	if (ret < 0)
+		goto error;
 
 	return 0;
 
