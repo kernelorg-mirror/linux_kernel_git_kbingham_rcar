@@ -493,9 +493,12 @@ static void max9286_notify_unbind(struct v4l2_async_notifier *notifier,
 				  struct v4l2_subdev *subdev,
 				  struct v4l2_async_subdev *asd)
 {
+	struct max9286_priv *priv = sd_to_max9286(notifier->sd);
 	struct max9286_source *source = asd_to_max9286_source(asd);
+	unsigned int index = to_index(priv, source);
 
 	source->sd = NULL;
+	priv->bound_sources &= ~BIT(index);
 }
 
 static const struct v4l2_async_notifier_operations max9286_notify_ops = {
