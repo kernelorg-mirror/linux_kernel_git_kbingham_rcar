@@ -1061,8 +1061,7 @@ static int max9286_parse_dt(struct max9286_priv *priv)
 			continue;
 
 		if (!of_device_is_available(node)) {
-			dev_dbg(dev, "Skipping disabled I2C bus port %u\n",
-				id);
+			dev_dbg(dev, "Skipping disabled I2C bus port %u\n", id);
 			continue;
 		}
 
