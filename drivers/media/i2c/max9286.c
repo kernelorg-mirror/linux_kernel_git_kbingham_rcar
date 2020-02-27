@@ -911,12 +911,6 @@ static int max9286_setup(struct max9286_priv *priv)
 	return 0;
 }
 
-static const struct of_device_id max9286_dt_ids[] = {
-	{ .compatible = "maxim,max9286" },
-	{},
-};
-MODULE_DEVICE_TABLE(of, max9286_dt_ids);
-
 static void max9286_gpio_set(struct gpio_chip *chip,
 			     unsigned int offset, int value)
 {
@@ -975,10 +969,6 @@ static int max9286_init(struct device *dev)
 	struct max9286_priv *priv;
 	struct i2c_client *client;
 	int ret;
-
-	/* Skip non-max9286 devices. */
-	if (!dev->of_node || !of_match_node(max9286_dt_ids, dev->of_node))
-		return 0;
 
 	client = to_i2c_client(dev);
 	priv = i2c_get_clientdata(client);
@@ -1255,6 +1245,12 @@ static int max9286_remove(struct i2c_client *client)
 
 	return 0;
 }
+
+static const struct of_device_id max9286_dt_ids[] = {
+	{ .compatible = "maxim,max9286" },
+	{},
+};
+MODULE_DEVICE_TABLE(of, max9286_dt_ids);
 
 static const struct i2c_device_id max9286_id[] = {
 	{ "max9286", 0 },
