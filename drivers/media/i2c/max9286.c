@@ -1187,7 +1187,7 @@ static int max9286_probe(struct i2c_client *client)
 	if (ret)
 		goto err_powerdown;
 
-	priv->regulator = regulator_get(&client->dev, "poc");
+	priv->regulator = devm_regulator_get(&client->dev, "poc");
 	if (IS_ERR(priv->regulator)) {
 		if (PTR_ERR(priv->regulator) != -EPROBE_DEFER)
 			dev_err(&client->dev,
@@ -1249,7 +1249,6 @@ static int max9286_remove(struct i2c_client *client)
 
 	if (priv->poc_enabled)
 		regulator_disable(priv->regulator);
-	regulator_put(priv->regulator);
 
 	gpiod_set_value_cansleep(priv->gpiod_pwdn, 0);
 
