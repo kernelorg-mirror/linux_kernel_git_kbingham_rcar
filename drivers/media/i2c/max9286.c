@@ -1171,8 +1171,10 @@ static int max9286_probe(struct i2c_client *client)
 
 	priv->gpiod_pwdn = devm_gpiod_get_optional(&client->dev, "enable",
 						   GPIOD_OUT_HIGH);
-	if (IS_ERR(priv->gpiod_pwdn))
-		return PTR_ERR(priv->gpiod_pwdn);
+	if (IS_ERR(priv->gpiod_pwdn)) {
+		ret = PTR_ERR(priv->gpiod_pwdn);
+		goto err_cleanup_dt;
+	}
 
 	gpiod_set_consumer_name(priv->gpiod_pwdn, "max9286-pwdn");
 	gpiod_set_value_cansleep(priv->gpiod_pwdn, 1);
@@ -1193,7 +1195,7 @@ static int max9286_probe(struct i2c_client *client)
 				PTR_ERR(priv->regulator));
 		ret = PTR_ERR(priv->regulator);
 		priv->regulator = NULL;
-		goto err_free;
+		goto err_cleanup_dt;
 	}
 
 	/*
@@ -1230,7 +1232,7 @@ err_regulator:
 	regulator_put(priv->regulator);
 	max9286_i2c_mux_close(priv);
 	max9286_configure_i2c(priv, false);
-err_free:
+err_cleanup_dt:
 	max9286_cleanup_dt(priv);
 
 	return ret;
@@ -1248,9 +1250,9 @@ static int max9286_remove(struct i2c_client *client)
 		regulator_disable(priv->regulator);
 	regulator_put(priv->regulator);
 
-	max9286_cleanup_dt(priv);
-
 	gpiod_set_value_cansleep(priv->gpiod_pwdn, 0);
+
+	max9286_cleanup_dt(priv);
 
 	return 0;
 }
