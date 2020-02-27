@@ -1155,7 +1155,7 @@ static int max9286_probe(struct i2c_client *client)
 	unsigned int i;
 	int ret;
 
-	priv = kzalloc(sizeof(*priv), GFP_KERNEL);
+	priv = devm_kzalloc(&client->dev, sizeof(*priv), GFP_KERNEL);
 	if (!priv)
 		return -ENOMEM;
 
@@ -1232,7 +1232,6 @@ err_regulator:
 	max9286_configure_i2c(priv, false);
 err_free:
 	max9286_cleanup_dt(priv);
-	kfree(priv);
 
 	return ret;
 }
@@ -1252,8 +1251,6 @@ static int max9286_remove(struct i2c_client *client)
 	max9286_cleanup_dt(priv);
 
 	gpiod_set_value_cansleep(priv->gpiod_pwdn, 0);
-
-	kfree(priv);
 
 	return 0;
 }
