@@ -158,6 +158,7 @@ struct max9286_priv {
 	bool mux_open;
 
 	struct v4l2_ctrl_handler ctrls;
+	struct v4l2_ctrl *pixelrate;
 
 	struct v4l2_mbus_framefmt fmt[MAX9286_N_SINKS];
 
@@ -432,6 +433,11 @@ static int max9286_check_config_link(struct max9286_priv *priv,
  * V4L2 Subdev
  */
 
+static int max9286_set_pixelrate(struct max9286_priv *priv, s64 rate)
+{
+	return v4l2_ctrl_s_ctrl_int64(priv->pixelrate, rate);
+}
+
 static int max9286_notify_bound(struct v4l2_async_notifier *notifier,
 				struct v4l2_subdev *subdev,
 				struct v4l2_async_subdev *asd)
@@ -667,6 +673,7 @@ static int max9286_set_fmt(struct v4l2_subdev *sd,
 {
 	struct max9286_priv *priv = sd_to_max9286(sd);
 	struct v4l2_mbus_framefmt *cfg_fmt;
+	s64 pixelrate;
 
 	if (format->pad >= MAX9286_SRC_PAD)
 		return -EINVAL;
@@ -690,6 +697,12 @@ static int max9286_set_fmt(struct v4l2_subdev *sd,
 	mutex_lock(&priv->mutex);
 	*cfg_fmt = format->format;
 	mutex_unlock(&priv->mutex);
+
+	/* Update pixel rate for the CSI2 receiver */
+	pixelrate = cfg_fmt->width * cfg_fmt->height
+		  * priv->nsources * 30 /*FPS*/;
+
+	max9286_set_pixelrate(priv, pixelrate);
 
 	return 0;
 }
@@ -759,6 +772,20 @@ static const struct v4l2_subdev_internal_ops max9286_subdev_internal_ops = {
 	.open = max9286_open,
 };
 
+static int max9286_s_ctrl(struct v4l2_ctrl *ctrl)
+{
+	switch (ctrl->id) {
+	case V4L2_CID_PIXEL_RATE:
+		return 0;
+	default:
+		return -EINVAL;
+	}
+}
+
+static const struct v4l2_ctrl_ops max9286_ctrl_ops = {
+	.s_ctrl	= max9286_s_ctrl,
+};
+
 static int max9286_v4l2_register(struct max9286_priv *priv)
 {
 	struct device *dev = &priv->client->dev;
@@ -783,12 +810,11 @@ static int max9286_v4l2_register(struct max9286_priv *priv)
 	priv->sd.flags |= V4L2_SUBDEV_FL_HAS_DEVNODE;
 
 	v4l2_ctrl_handler_init(&priv->ctrls, 1);
-	/*
-	 * FIXME: Compute the real pixel rate. The 50 MP/s value comes from the
-	 * hardcoded frequency in the BSP CSI-2 receiver driver.
-	 */
-	v4l2_ctrl_new_std(&priv->ctrls, NULL, V4L2_CID_PIXEL_RATE,
-			  50000000, 50000000, 1, 50000000);
+	priv->pixelrate = v4l2_ctrl_new_std(&priv->ctrls,
+					    &max9286_ctrl_ops,
+					    V4L2_CID_PIXEL_RATE,
+					    1, INT_MAX, 1, 50000000);
+
 	priv->sd.ctrl_handler = &priv->ctrls;
 	ret = priv->ctrls.error;
 	if (ret)
