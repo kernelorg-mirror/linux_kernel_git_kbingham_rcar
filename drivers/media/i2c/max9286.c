@@ -1185,7 +1185,7 @@ static int max9286_probe(struct i2c_client *client)
 
 	ret = max9286_gpio(priv);
 	if (ret)
-		return ret;
+		goto err_powerdown;
 
 	priv->regulator = regulator_get(&client->dev, "poc");
 	if (IS_ERR(priv->regulator)) {
@@ -1194,8 +1194,7 @@ static int max9286_probe(struct i2c_client *client)
 				"Unable to get PoC regulator (%ld)\n",
 				PTR_ERR(priv->regulator));
 		ret = PTR_ERR(priv->regulator);
-		priv->regulator = NULL;
-		goto err_cleanup_dt;
+		goto err_powerdown;
 	}
 
 	/*
@@ -1232,6 +1231,8 @@ err_regulator:
 	regulator_put(priv->regulator);
 	max9286_i2c_mux_close(priv);
 	max9286_configure_i2c(priv, false);
+err_powerdown:
+	gpiod_set_value_cansleep(priv->gpiod_pwdn, 0);
 err_cleanup_dt:
 	max9286_cleanup_dt(priv);
 
