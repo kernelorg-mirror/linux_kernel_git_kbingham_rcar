@@ -973,6 +973,18 @@ static int max9286_setup(struct max9286_priv *priv)
 		      MAX9286_HVSRC_D14);
 
 	/*
+	 * The overlap window seems to provide additional validation by tracking
+	 * the delay between vsync and frame sync, generating an error if the
+	 * delay is bigger than the programmed window, though it's not yet clear
+	 * what value should be set.
+	 *
+	 * As it's an optional value and can be disabled, we do so by setting
+	 * a 0 overlap value.
+	 */
+	max9286_write(priv, 0x63, 0);
+	max9286_write(priv, 0x64, 0);
+
+	/*
 	 * Wait for 2ms to allow the link to resynchronize after the
 	 * configuration change.
 	 */
