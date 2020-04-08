@@ -118,6 +118,9 @@
 #define MAX9286_REV_FLEN(n)		((n) - 20)
 /* Register 0x49 */
 #define MAX9286_VIDEO_DETECT_MASK	0x0f
+/* Register 0x64 */
+#define MAX9286_ENFSINLAST		BIT(5)
+#define MAX9286_OVLP_WINDOWH_MASK	GENMASK(4, 0)
 /* Register 0x69 */
 #define MAX9286_LFLTBMONMASKED		BIT(7)
 #define MAX9286_LOCKMONMASKED		BIT(6)
@@ -632,6 +635,34 @@ static int max9286_s_stream(struct v4l2_subdev *sd, int enable)
 	return 0;
 }
 
+/*
+ * The overlap window is a 13 bit value with the low byte in register 0x63 and
+ * the high byte(5bits) stored in the least significant bits of register 0x64.
+ */
+static int max9286_set_overlap_window(struct max9286_priv *priv, u16 window)
+{
+	int ret;
+	u8 val;
+
+	ret = max9286_read(priv, 0x64);
+	if (ret < 0)
+		return -EIO;
+
+	max9286_write(priv, 0x63, window & 0xff);
+
+	/*
+	 * Process the high byte, while preserve existing bits set in 0x64.
+	 * TODO: Convert this all to regmap so we can utilise regmap_update_bits
+	 */
+	window >>= 8;
+	val = ret & ~MAX9286_OVLP_WINDOWH_MASK;
+	val |= window & MAX9286_OVLP_WINDOWH_MASK;
+
+	max9286_write(priv, 0x64, val);
+
+	return 0;
+}
+
 static int max9286_set_pixelrate(struct max9286_priv *priv, s64 rate)
 {
 	if (!priv->pixelrate)
@@ -941,6 +972,17 @@ static int max9286_setup(struct max9286_priv *priv)
 	/* Enable HS/VS encoding, use D14/15 for HS/VS, invert VS. */
 	max9286_write(priv, 0x0c, MAX9286_HVEN | MAX9286_INVVS |
 		      MAX9286_HVSRC_D14);
+
+	/*
+	 * The overlap window seems to provide additional validation by tracking
+	 * the delay between vsync and frame sync, generating an error if the
+	 * delay is bigger than the programmed window, though it's not yet clear
+	 * what value should be set.
+	 *
+	 * As it's an optional value and can be disabled, we do so by setting
+	 * a 0 overlap value.
+	 */
+	max9286_set_overlap_window(priv, 0);
 
 	/*
 	 * Wait for 2ms to allow the link to resynchronize after the
