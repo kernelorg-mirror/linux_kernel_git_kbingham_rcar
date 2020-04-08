@@ -1252,12 +1252,6 @@ static const struct of_device_id max9286_dt_ids[] = {
 };
 MODULE_DEVICE_TABLE(of, max9286_dt_ids);
 
-static const struct i2c_device_id max9286_id[] = {
-	{ "max9286", 0 },
-	{ }
-};
-MODULE_DEVICE_TABLE(i2c, max9286_id);
-
 static struct i2c_driver max9286_i2c_driver = {
 	.driver	= {
 		.name		= "max9286",
@@ -1265,7 +1259,6 @@ static struct i2c_driver max9286_i2c_driver = {
 	},
 	.probe_new	= max9286_probe,
 	.remove		= max9286_remove,
-	.id_table	= max9286_id,
 };
 
 module_i2c_driver(max9286_i2c_driver);
