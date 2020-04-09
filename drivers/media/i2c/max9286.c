@@ -463,9 +463,9 @@ static int max9286_notify_bound(struct v4l2_async_notifier *notifier,
 		subdev->name, src_pad, index);
 
 	/*
-	 * We can only register v4l2_async_notifiers which do not provide a
+	 * We can only register v4l2_async_notifiers, which do not provide a
 	 * means to register a complete callback. bound_sources allows us to
-	 * identify when all remove serializers have completed their probe.
+	 * identify when all remote serializers have completed their probe.
 	 */
 	if (priv->bound_sources != priv->source_mask)
 		return 0;
