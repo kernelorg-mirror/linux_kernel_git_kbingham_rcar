@@ -1121,6 +1121,7 @@ static int max9286_parse_dt(struct max9286_priv *priv)
 	i2c_mux = of_find_node_by_name(dev->of_node, "i2c-mux");
 	if (!i2c_mux) {
 		dev_err(dev, "Failed to find i2c-mux node\n");
+		of_node_put(dev->of_node);
 		return -EINVAL;
 	}
 
@@ -1168,6 +1169,7 @@ static int max9286_parse_dt(struct max9286_priv *priv)
 					of_fwnode_handle(node), &vep);
 			if (ret) {
 				of_node_put(node);
+				of_node_put(dev->of_node);
 				return ret;
 			}
 
@@ -1177,6 +1179,7 @@ static int max9286_parse_dt(struct max9286_priv *priv)
 					vep.bus_type);
 				v4l2_fwnode_endpoint_free(&vep);
 				of_node_put(node);
+				of_node_put(dev->of_node);
 				return -EINVAL;
 			}
 
@@ -1214,6 +1217,7 @@ static int max9286_parse_dt(struct max9286_priv *priv)
 		priv->nsources++;
 	}
 	of_node_put(node);
+	of_node_put(dev->of_node);
 
 	priv->route_mask = priv->source_mask;
 
