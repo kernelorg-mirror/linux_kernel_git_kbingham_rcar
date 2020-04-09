@@ -128,6 +128,10 @@
 #define MAX9286_AUTOMASKEN		BIT(4)
 #define MAX9286_MASKLINK(n)		((n) << 0)
 
+/*
+ * The sink and source pads are created to match the OF graph port numbers so
+ * that their indexes can be used interchangeably.
+ */
 #define MAX9286_NUM_GMSL		4
 #define MAX9286_N_SINKS			4
 #define MAX9286_N_PADS			5
