@@ -152,7 +152,6 @@ struct max9286_priv {
 	struct v4l2_subdev sd;
 	struct media_pad pads[MAX9286_N_PADS];
 	struct regulator *regulator;
-	bool poc_enabled;
 
 	struct gpio_chip gpio;
 	u8 gpio_state;
@@ -1066,8 +1065,6 @@ static int max9286_init(struct device *dev)
 		return ret;
 	}
 
-	priv->poc_enabled = true;
-
 	ret = max9286_setup(priv);
 	if (ret) {
 		dev_err(dev, "Unable to setup max9286\n");
@@ -1099,7 +1096,6 @@ err_v4l2_register:
 	max9286_v4l2_unregister(priv);
 err_regulator:
 	regulator_disable(priv->regulator);
-	priv->poc_enabled = false;
 
 	return ret;
 }
@@ -1324,8 +1320,7 @@ static int max9286_remove(struct i2c_client *client)
 
 	max9286_v4l2_unregister(priv);
 
-	if (priv->poc_enabled)
-		regulator_disable(priv->regulator);
+	regulator_disable(priv->regulator);
 
 	gpiod_set_value_cansleep(priv->gpiod_pwdn, 0);
 
