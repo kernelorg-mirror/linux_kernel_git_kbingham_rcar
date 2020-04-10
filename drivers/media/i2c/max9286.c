@@ -1254,26 +1254,16 @@ static int max9286_probe(struct i2c_client *client)
 		usleep_range(4000, 5000);
 
 	/*
-	 * We can have multiple MAX9286 instances on the same physical I2C
-	 * bus, and I2C children behind ports of separate MAX9286 instances
-	 * having the same I2C address. As the MAX9286 starts by default with
-	 * all ports enabled, we need to disable all ports on all MAX9286
-	 * instances before proceeding to further initialize the devices and
-	 * instantiate children.
-	 *
-	 * Start by just disabling all channels on the current device. Then,
-	 * if all other MAX9286 on the parent bus have been probed, proceed
-	 * to initialize them all, including the current one.
+	 * The MAX9286 starts by default with all ports enabled, we disable all
+	 * ports early to ensure that all channels are disabled if we error out
+	 * and keep the bus consistent.
 	 */
 	max9286_i2c_mux_close(priv);
 
 	/*
 	 * The MAX9286 initialises with auto-acknowledge enabled by default.
-	 * This means that if multiple MAX9286 devices are connected to an I2C
-	 * bus, another MAX9286 could ack I2C transfers meant for a device on
-	 * the other side of the GMSL links for this MAX9286 (such as a
-	 * MAX9271). To prevent that disable auto-acknowledge early on; it
-	 * will be enabled later as needed.
+	 * This can be invasive to other transactions on the same bus, so
+	 * disable it early. It will be enabled only as and when needed.
 	 */
 	max9286_configure_i2c(priv, false);
 
