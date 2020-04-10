@@ -1016,7 +1016,7 @@ static int max9286_gpio_get(struct gpio_chip *chip, unsigned int offset)
 	return priv->gpio_state & BIT(offset);
 }
 
-static int max9286_gpio(struct max9286_priv *priv)
+static int max9286_register_gpio(struct max9286_priv *priv)
 {
 	struct device *dev = &priv->client->dev;
 	struct gpio_chip *gpio = &priv->gpio;
@@ -1260,7 +1260,7 @@ static int max9286_probe(struct i2c_client *client)
 	if (priv->gpiod_pwdn)
 		usleep_range(4000, 5000);
 
-	ret = max9286_gpio(priv);
+	ret = max9286_register_gpio(priv);
 	if (ret)
 		goto err_powerdown;
 
