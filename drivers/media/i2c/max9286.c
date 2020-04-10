@@ -838,6 +838,9 @@ static int max9286_v4l2_register(struct max9286_priv *priv)
 
 	/* Configure V4L2 for the MAX9286 itself */
 
+	for (i = 0; i < MAX9286_N_SINKS; i++)
+		max9286_init_format(&priv->fmt[i]);
+
 	v4l2_i2c_subdev_init(&priv->sd, priv->client, &max9286_subdev_ops);
 	priv->sd.internal_ops = &max9286_subdev_internal_ops;
 	priv->sd.flags |= V4L2_SUBDEV_FL_HAS_DEVNODE;
@@ -1227,7 +1230,6 @@ static int max9286_parse_dt(struct max9286_priv *priv)
 static int max9286_probe(struct i2c_client *client)
 {
 	struct max9286_priv *priv;
-	unsigned int i;
 	int ret;
 
 	priv = devm_kzalloc(&client->dev, sizeof(*priv), GFP_KERNEL);
@@ -1238,9 +1240,6 @@ static int max9286_probe(struct i2c_client *client)
 
 	priv->client = client;
 	i2c_set_clientdata(client, priv);
-
-	for (i = 0; i < MAX9286_N_SINKS; i++)
-		max9286_init_format(&priv->fmt[i]);
 
 	ret = max9286_parse_dt(priv);
 	if (ret)
