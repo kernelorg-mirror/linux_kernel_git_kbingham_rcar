@@ -1167,16 +1167,10 @@ static int max9286_probe(struct i2c_client *client)
 	priv->client = client;
 	i2c_set_clientdata(client, priv);
 
-	ret = max9286_parse_dt(priv);
-	if (ret)
-		return ret;
-
 	priv->gpiod_pwdn = devm_gpiod_get_optional(&client->dev, "enable",
 						   GPIOD_OUT_HIGH);
-	if (IS_ERR(priv->gpiod_pwdn)) {
-		ret = PTR_ERR(priv->gpiod_pwdn);
-		goto err_cleanup_dt;
-	}
+	if (IS_ERR(priv->gpiod_pwdn))
+		return PTR_ERR(priv->gpiod_pwdn);
 
 	gpiod_set_consumer_name(priv->gpiod_pwdn, "max9286-pwdn");
 	gpiod_set_value_cansleep(priv->gpiod_pwdn, 1);
@@ -1184,20 +1178,6 @@ static int max9286_probe(struct i2c_client *client)
 	/* Wait at least 4ms before the I2C lines latch to the address */
 	if (priv->gpiod_pwdn)
 		usleep_range(4000, 5000);
-
-	ret = max9286_register_gpio(priv);
-	if (ret)
-		goto err_powerdown;
-
-	priv->regulator = devm_regulator_get(&client->dev, "poc");
-	if (IS_ERR(priv->regulator)) {
-		if (PTR_ERR(priv->regulator) != -EPROBE_DEFER)
-			dev_err(&client->dev,
-				"Unable to get PoC regulator (%ld)\n",
-				PTR_ERR(priv->regulator));
-		ret = PTR_ERR(priv->regulator);
-		goto err_powerdown;
-	}
 
 	/*
 	 * We can have multiple MAX9286 instances on the same physical I2C
@@ -1223,20 +1203,34 @@ static int max9286_probe(struct i2c_client *client)
 	 */
 	max9286_configure_i2c(priv, false);
 
+	ret = max9286_register_gpio(priv);
+	if (ret)
+		goto err_powerdown;
+
+	priv->regulator = devm_regulator_get(&client->dev, "poc");
+	if (IS_ERR(priv->regulator)) {
+		if (PTR_ERR(priv->regulator) != -EPROBE_DEFER)
+			dev_err(&client->dev,
+				"Unable to get PoC regulator (%ld)\n",
+				PTR_ERR(priv->regulator));
+		ret = PTR_ERR(priv->regulator);
+		goto err_powerdown;
+	}
+
+	ret = max9286_parse_dt(priv);
+	if (ret)
+		goto err_powerdown;
+
 	ret = max9286_init(&client->dev);
 	if (ret < 0)
-		goto err_regulator;
+		goto err_cleanup_dt;
 
 	return 0;
 
-err_regulator:
-	regulator_put(priv->regulator);
-	max9286_i2c_mux_close(priv);
-	max9286_configure_i2c(priv, false);
-err_powerdown:
-	gpiod_set_value_cansleep(priv->gpiod_pwdn, 0);
 err_cleanup_dt:
 	max9286_cleanup_dt(priv);
+err_powerdown:
+	gpiod_set_value_cansleep(priv->gpiod_pwdn, 0);
 
 	return ret;
 }
