@@ -433,9 +433,46 @@ static int max9286_check_config_link(struct max9286_priv *priv,
  * V4L2 Subdev
  */
 
-static int max9286_set_pixelrate(struct max9286_priv *priv, s64 rate)
+static int max9286_set_pixelrate(struct max9286_priv *priv)
 {
-	return v4l2_ctrl_s_ctrl_int64(priv->pixelrate, rate);
+	struct max9286_source *source = NULL;
+	u64 pixelrate = 0;
+
+	for_each_source(priv, source) {
+		struct v4l2_ctrl *ctrl;
+		u64 source_rate = 0;
+
+		/* Pixel rate is mandatory to be reported by sources. */
+		ctrl = v4l2_ctrl_find(source->sd->ctrl_handler,
+				      V4L2_CID_PIXEL_RATE);
+		if (!ctrl) {
+			pixelrate = 0;
+			break;
+		}
+
+		/* All source must report the same pixel rate. */
+		source_rate = v4l2_ctrl_g_ctrl_int64(ctrl);
+		if (!pixelrate) {
+			pixelrate = source_rate;
+		} else if (pixelrate != source_rate) {
+			dev_err(&priv->client->dev,
+				"Unable to calculate pixel rate\n");
+			return -EINVAL;
+		}
+	}
+
+	if (!pixelrate) {
+		dev_err(&priv->client->dev,
+			"No pixel rate control available in sources\n");
+		return -EINVAL;
+	}
+
+	/*
+	 * The CSI-2 transmitter pixel rate is the single source rate multiplied
+	 * by the number of available sources.
+	 */
+	return v4l2_ctrl_s_ctrl_int64(priv->pixelrate,
+				      pixelrate * priv->nsources);
 }
 
 static int max9286_notify_bound(struct v4l2_async_notifier *notifier,
@@ -499,7 +536,7 @@ static int max9286_notify_bound(struct v4l2_async_notifier *notifier,
 	 */
 	max9286_configure_i2c(priv, false);
 
-	return 0;
+	return max9286_set_pixelrate(priv);
 }
 
 static void max9286_notify_unbind(struct v4l2_async_notifier *notifier,
@@ -673,7 +710,6 @@ static int max9286_set_fmt(struct v4l2_subdev *sd,
 {
 	struct max9286_priv *priv = sd_to_max9286(sd);
 	struct v4l2_mbus_framefmt *cfg_fmt;
-	s64 pixelrate;
 
 	if (format->pad >= MAX9286_SRC_PAD)
 		return -EINVAL;
@@ -697,12 +733,6 @@ static int max9286_set_fmt(struct v4l2_subdev *sd,
 	mutex_lock(&priv->mutex);
 	*cfg_fmt = format->format;
 	mutex_unlock(&priv->mutex);
-
-	/* Update pixel rate for the CSI2 receiver */
-	pixelrate = cfg_fmt->width * cfg_fmt->height
-		  * priv->nsources * 30 /*FPS*/;
-
-	max9286_set_pixelrate(priv, pixelrate);
 
 	return 0;
 }
