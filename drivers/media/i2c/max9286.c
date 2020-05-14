@@ -1301,6 +1301,14 @@ static void max9286_cleanup_dt(struct max9286_priv *priv)
 	}
 }
 
+static int of_ref_read(struct device_node *node)
+{
+	if (node)
+		return kref_read(&node->kobj.kref);
+
+	return 0;
+}
+
 static int max9286_parse_dt(struct max9286_priv *priv)
 {
 	struct device *dev = &priv->client->dev;
@@ -1469,9 +1477,15 @@ static int max9286_probe(struct i2c_client *client)
 		goto err_powerdown;
 	}
 
+	dev_err(&client->dev, "%d: A) of_node pre parse_dt %d.\n",
+		__LINE__, of_ref_read(client->dev.of_node));
+
 	ret = max9286_parse_dt(priv);
 	if (ret)
 		goto err_powerdown;
+
+	dev_err(&client->dev, "%d: B) of_node post parse_dt %d.\n",
+		__LINE__, of_ref_read(client->dev.of_node));
 
 	/* Add any userspace support before we return early. */
 	max9286_debugfs_init(priv);
@@ -1500,6 +1514,9 @@ err_cleanup_dt:
 	max9286_debugfs_remove(priv);
 err_powerdown:
 	gpiod_set_value_cansleep(priv->gpiod_pwdn, 0);
+
+	dev_err(&client->dev, "%d: C) of_node post parse_dt %d.\n",
+		__LINE__, of_ref_read(client->dev.of_node));
 
 	return ret;
 }
