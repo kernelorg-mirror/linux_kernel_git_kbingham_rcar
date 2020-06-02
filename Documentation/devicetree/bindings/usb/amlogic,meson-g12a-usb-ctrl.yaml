@@ -176,7 +176,7 @@ examples:
   - |
     usb: usb@ffe09000 {
           compatible = "amlogic,meson-g12a-usb-ctrl";
-          reg = <0x0 0xffe09000 0x0 0xa0>;
+          reg = <0xffe09000 0xa0>;
           interrupts = <16>;
           #address-cells = <1>;
           #size-cells = <1>;
@@ -212,4 +212,3 @@ examples:
               snps,quirk-frame-length-adjustment;
           };
     };
-
