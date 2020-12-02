@@ -2502,9 +2502,9 @@
 			reg = <0 0xfe940000 0 0x2400>;
 			interrupts = <GIC_SPI 262 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&cpg CPG_MOD 119>;
-			power-domains = <&sysc R8A7795_PD_A3VP>;
+			//power-domains = <&sysc R8A77961_PD_A3VP>;
 			resets = <&cpg 119>;
-			renesas,fcp = <&fcpf0>;
+			//renesas,fcp = <&fcpf0>;
 		};
 
 		fdp1@fe944000 {
@@ -2512,9 +2512,9 @@
 			reg = <0 0xfe944000 0 0x2400>;
 			interrupts = <GIC_SPI 263 IRQ_TYPE_LEVEL_HIGH>;
 			clocks = <&cpg CPG_MOD 118>;
-			power-domains = <&sysc R8A7795_PD_A3VP>;
+			//power-domains = <&sysc R8A77961_PD_A3VP>;
 			resets = <&cpg 118>;
-			renesas,fcp = <&fcpf1>;
+			//renesas,fcp = <&fcpf1>;
 		};
 
 		csi20: csi2@fea80000 {
