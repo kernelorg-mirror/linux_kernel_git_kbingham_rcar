@@ -54,12 +54,14 @@ struct vsp1_uif;
 #define VSP1_HAS_HGT		BIT(8)
 #define VSP1_HAS_BRS		BIT(9)
 #define VSP1_HAS_EXT_DL		BIT(10)
+#define VSP1_HAS_IIF		BIT(11)
 
 struct vsp1_device_info {
 	u32 version;
 	const char *model;
 	unsigned int gen;
 	unsigned int features;
+	unsigned int iif_count;
 	unsigned int lif_count;
 	unsigned int rpf_count;
 	unsigned int uds_count;
