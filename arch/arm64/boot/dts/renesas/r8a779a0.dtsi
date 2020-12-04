@@ -1142,6 +1142,39 @@
 			renesas,fcp = <&fcpvd1>;
 		};
 
+		fcpvx0: fcp@fedb0000 {
+			compatible = "renesas,fcpvx"; // Doesn't exist yet
+			reg = <0 0xfedb0000 0 0x200>;
+			clocks = <&cpg CPG_MOD 1100>;
+			power-domains = <&sysc R8A779A0_PD_ALWAYS_ON>;
+			resets = <&cpg 1100>;
+			// Can't add FCPvX yet without clocks support in cpg-mssr.
+		};
+
+		fcpvx1: fcp@fedb8000 {
+			compatible = "renesas,fcpvx"; // Doesn't exist yet
+			reg = <0 0xfedb8000 0 0x200>;
+			clocks = <&cpg CPG_MOD 1101>;
+			power-domains = <&sysc R8A779A0_PD_ALWAYS_ON>;
+			resets = <&cpg 1101>;
+		};
+
+		fcpvx2: fcp@fedc0000 {
+			compatible = "renesas,fcpvx"; // Doesn't exist yet
+			reg = <0 0xfedc0000 0 0x200>;
+			clocks = <&cpg CPG_MOD 1102>;
+			power-domains = <&sysc R8A779A0_PD_ALWAYS_ON>;
+			resets = <&cpg 1102>;
+		};
+
+		fcpvx3: fcp@fedc8000 {
+			compatible = "renesas,fcpvx"; // Doesn't exist yet
+			reg = <0 0xfedc8000 0 0x200>;
+			clocks = <&cpg CPG_MOD 1103>;
+			power-domains = <&sysc R8A779A0_PD_ALWAYS_ON>;
+			resets = <&cpg 1103>;
+		};
+
 		vspx0: vsp@fedd0000 {
 			compatible = "renesas,vsp2";
 			reg = <0 0xfedd0000 0 0x8000>;
@@ -1149,6 +1182,8 @@
 			clocks = <&cpg CPG_MOD 1028>;
 			power-domains = <&sysc R8A779A0_PD_ALWAYS_ON>;
 			resets = <&cpg 1028>;
+
+			renesas,fcp = <&fcpvx0>;
 		};
 
 		vspx1: vsp@fedd8000 {
@@ -1158,6 +1193,8 @@
 			clocks = <&cpg CPG_MOD 1029>;
 			power-domains = <&sysc R8A779A0_PD_ALWAYS_ON>;
 			resets = <&cpg 1029>;
+
+			renesas,fcp = <&fcpvx1>;
 		};
 
 		vspx2: vsp@fede0000 {
@@ -1167,6 +1204,8 @@
 			clocks = <&cpg CPG_MOD 1030>;
 			power-domains = <&sysc R8A779A0_PD_ALWAYS_ON>;
 			resets = <&cpg 1030>;
+
+			renesas,fcp = <&fcpvx2>;
 		};
 
 		vspx3: vsp@fede8000 {
@@ -1176,6 +1215,8 @@
 			clocks = <&cpg CPG_MOD 1031>;
 			power-domains = <&sysc R8A779A0_PD_ALWAYS_ON>;
 			resets = <&cpg 1031>;
+
+			renesas,fcp = <&fcpvx3>;
 		};
 
 		prr: chipid@fff00044 {
