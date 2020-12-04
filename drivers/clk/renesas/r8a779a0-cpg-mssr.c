@@ -250,6 +250,10 @@ static const struct mssr_mod_clk r8a779a0_mod_clks[] __initconst = {
 	DEF_MOD("vspx1",	1029,	R8A779A0_CLK_S1D1),
 	DEF_MOD("vspx2",	1030,	R8A779A0_CLK_S1D1),
 	DEF_MOD("vspx3",	1031,	R8A779A0_CLK_S1D1),
+	DEF_MOD("fcpvx0",	1100,	R8A779A0_CLK_S1D1),
+	DEF_MOD("fcpvx1",	1101,	R8A779A0_CLK_S1D1),
+	DEF_MOD("fcpvx2",	1102,	R8A779A0_CLK_S1D1),
+	DEF_MOD("fcpvx3",	1103,	R8A779A0_CLK_S1D1),
 };
 
 static const struct rcar_r8a779a0_cpg_pll_config *cpg_pll_config __initdata;
