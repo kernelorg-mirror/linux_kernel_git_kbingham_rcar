@@ -808,6 +808,20 @@
 #define VI6_CLUT_TABLE			0x4000
 
 /* -----------------------------------------------------------------------------
+ * Internal Observation Points Control Registers
+ */
+
+#define VI6_IOP_DREG			0x5000
+#define VI6_IOP_RPF(n)			(0x5804 + (n) * 4)
+#define VI6_IOP_UIF4			0x5818
+#define VI6_IOP_UIF5			0x581c
+
+#define VI6_IOP_BRU			0x5828
+#define VI6_IOP_ILV			0x582c
+#define VI6_IOP_DLL			0x5830
+#define VI6_IOP_SMG			0x5834
+
+/* -----------------------------------------------------------------------------
  * 1D LUT Registers
  */
 
