@@ -57,6 +57,7 @@
 #define SN_LN_ASSIGN_REG			0x59
 #define  LN_ASSIGN_WIDTH			2
 #define SN_ENH_FRAME_REG			0x5A
+#define  ASSR_CONTROL				BIT(0)
 #define  VSTREAM_ENABLE				BIT(3)
 #define  LN_POLRS_OFFSET			4
 #define  LN_POLRS_MASK				0xf0
@@ -88,6 +89,8 @@
 #define SN_DATARATE_CONFIG_REG			0x94
 #define  DP_DATARATE_MASK			GENMASK(7, 5)
 #define  DP_DATARATE(x)				((x) << 5)
+#define SN_TRAINING_SETTING_REG			0x95
+#define  SCRAMBLE_DISABLE			BIT(4)
 #define SN_ML_TX_MODE_REG			0x96
 #define  ML_TX_MAIN_LINK_OFF			0
 #define  ML_TX_NORMAL_MODE			BIT(0)
@@ -975,6 +978,11 @@ static int ti_sn_link_training(struct ti_sn65dsi86 *pdata, int dp_rate_idx,
 	regmap_update_bits(pdata->regmap, SN_DATARATE_CONFIG_REG,
 			   DP_DATARATE_MASK, DP_DATARATE(dp_rate_idx));
 
+	/* For DisplayPort, use the standard DP scrambler seed. */
+	if (pdata->bridge.type == DRM_MODE_CONNECTOR_DisplayPort)
+		regmap_update_bits(pdata->regmap, SN_ENH_FRAME_REG,
+				   ASSR_CONTROL, 0);
+
 	/* enable DP PLL */
 	regmap_write(pdata->regmap, SN_PLL_ENABLE_REG, 1);
 
@@ -985,6 +993,11 @@ static int ti_sn_link_training(struct ti_sn65dsi86 *pdata, int dp_rate_idx,
 		*last_err_str = "DP_PLL_LOCK polling failed";
 		goto exit;
 	}
+
+	/* For DisplayPort, disable scrambling mode. */
+	if (pdata->bridge.type == DRM_MODE_CONNECTOR_DisplayPort)
+		regmap_update_bits(pdata->regmap, SN_TRAINING_SETTING_REG,
+				   SCRAMBLE_DISABLE, SCRAMBLE_DISABLE);
 
 	/*
 	 * We'll try to link train several times.  As part of link training
@@ -1204,16 +1217,19 @@ static int ti_sn_bridge_probe(struct auxiliary_device *adev,
 	struct device_node *np = pdata->dev->of_node;
 	int ret;
 
-	ret = drm_of_find_panel_or_bridge(np, 1, 0, &pdata->panel, NULL);
+	ret = drm_of_find_panel_or_bridge(np, 1, 0, &pdata->panel,
+					  &pdata->next_bridge);
 	if (ret)
 		return dev_err_probe(&adev->dev, ret,
 				     "could not find any panel node\n");
 
-	pdata->next_bridge = devm_drm_panel_bridge_add(pdata->dev,
-						       pdata->panel);
-	if (IS_ERR(pdata->next_bridge)) {
-		DRM_ERROR("failed to create panel bridge\n");
-		return PTR_ERR(pdata->next_bridge);
+	if (!pdata->next_bridge) {
+		pdata->next_bridge = devm_drm_panel_bridge_add(pdata->dev,
+							       pdata->panel);
+		if (IS_ERR(pdata->next_bridge)) {
+			DRM_ERROR("failed to create panel bridge\n");
+			return PTR_ERR(pdata->next_bridge);
+		}
 	}
 
 	ti_sn_bridge_parse_lanes(pdata, np);
@@ -1225,7 +1241,8 @@ static int ti_sn_bridge_probe(struct auxiliary_device *adev,
 	pdata->bridge.funcs = &ti_sn_bridge_funcs;
 	pdata->bridge.of_node = np;
 	pdata->bridge.ops = DRM_BRIDGE_OP_EDID;
-	pdata->bridge.type = DRM_MODE_CONNECTOR_eDP;
+	pdata->bridge.type = pdata->panel ? DRM_MODE_CONNECTOR_eDP
+			   : DRM_MODE_CONNECTOR_DisplayPort;
 
 	drm_bridge_add(&pdata->bridge);
 
