@@ -148,6 +148,10 @@
  *                bitmap so we can do atomic ops on it without an extra
  *                lock so concurrent users of our 4 GPIOs don't stomp on
  *                each other's read-modify-write.
+ * @no_hpd:       Disable hot-plug detection as instructed by device tree (used
+ *                for instance for eDP panels whose HPD signal won't be assrted
+ *                until the panel is turned on, and is thus not usable for
+ *                downstream device detection).
  */
 struct ti_sn65dsi86 {
 	struct auxiliary_device		bridge_aux;
@@ -175,6 +179,8 @@ struct ti_sn65dsi86 {
 	struct gpio_chip		gchip;
 	DECLARE_BITMAP(gchip_output, SN_NUM_GPIOS);
 #endif
+
+	bool				no_hpd;
 };
 
 static const struct regmap_range ti_sn65dsi86_volatile_ranges[] = {
@@ -266,23 +272,25 @@ static void ti_sn65dsi86_enable_comms(struct ti_sn65dsi86 *pdata)
 	ti_sn_bridge_set_refclk_freq(pdata);
 
 	/*
-	 * HPD on this bridge chip is a bit useless.  This is an eDP bridge
-	 * so the HPD is an internal signal that's only there to signal that
-	 * the panel is done powering up.  ...but the bridge chip debounces
-	 * this signal by between 100 ms and 400 ms (depending on process,
-	 * voltage, and temperate--I measured it at about 200 ms).  One
+	 * As this is an eDP bridge, the output will be connected to a fixed
+	 * panel in most systems. HPD is in that case only an internal signal
+	 * to signal that the panel is done powering up. The bridge chip
+	 * debounces this signal by between 100 ms and 400 ms (depending on
+	 * process, voltage, and temperate--I measured it at about 200 ms). One
 	 * particular panel asserted HPD 84 ms after it was powered on meaning
 	 * that we saw HPD 284 ms after power on.  ...but the same panel said
 	 * that instead of looking at HPD you could just hardcode a delay of
-	 * 200 ms.  We'll assume that the panel driver will have the hardcoded
-	 * delay in its prepare and always disable HPD.
+	 * 200 ms. HPD is thus a bit useless. For this type of use cases, we'll
+	 * assume that the panel driver will have the hardcoded delay in its
+	 * prepare and always disable HPD.
 	 *
-	 * If HPD somehow makes sense on some future panel we'll have to
-	 * change this to be conditional on someone specifying that HPD should
-	 * be used.
+	 * However, on some systems, the output is connected to a DisplayPort
+	 * connector. HPD is needed in such cases. To accommodate both use
+	 * cases, enable HPD only when requested.
 	 */
-	regmap_update_bits(pdata->regmap, SN_HPD_DISABLE_REG, HPD_DISABLE,
-			   HPD_DISABLE);
+	if (pdata->no_hpd)
+		regmap_update_bits(pdata->regmap, SN_HPD_DISABLE_REG,
+				   HPD_DISABLE, HPD_DISABLE);
 
 	pdata->comms_enabled = true;
 
@@ -1134,6 +1142,19 @@ static void ti_sn_bridge_post_disable(struct drm_bridge *bridge)
 	pm_runtime_put_sync(pdata->dev);
 }
 
+static enum drm_connector_status ti_sn_bridge_detect(struct drm_bridge *bridge)
+{
+	struct ti_sn65dsi86 *pdata = bridge_to_ti_sn65dsi86(bridge);
+	int val;
+
+	/*
+	 * TODO: Implement IRQ-based HPD, and expose DRM_BRIDGE_OP_HPD in the
+	 * bridge ops.
+	 */
+	regmap_read(pdata->regmap, SN_HPD_DISABLE_REG, &val);
+	return val ? connector_status_connected : connector_status_disconnected;
+}
+
 static struct edid *ti_sn_bridge_get_edid(struct drm_bridge *bridge,
 					  struct drm_connector *connector)
 {
@@ -1154,6 +1175,7 @@ static const struct drm_bridge_funcs ti_sn_bridge_funcs = {
 	.enable = ti_sn_bridge_enable,
 	.disable = ti_sn_bridge_disable,
 	.post_disable = ti_sn_bridge_post_disable,
+	.detect = ti_sn_bridge_detect,
 	.get_edid = ti_sn_bridge_get_edid,
 };
 
@@ -1243,6 +1265,8 @@ static int ti_sn_bridge_probe(struct auxiliary_device *adev,
 		}
 	}
 
+	pdata->no_hpd = of_property_read_bool(np, "no-hpd");
+
 	ti_sn_bridge_parse_lanes(pdata, np);
 
 	ret = ti_sn_bridge_parse_dsi_host(pdata);
@@ -1251,7 +1275,8 @@ static int ti_sn_bridge_probe(struct auxiliary_device *adev,
 
 	pdata->bridge.funcs = &ti_sn_bridge_funcs;
 	pdata->bridge.of_node = np;
-	pdata->bridge.ops = DRM_BRIDGE_OP_EDID;
+	pdata->bridge.ops = (pdata->no_hpd ? 0 : DRM_BRIDGE_OP_DETECT)
+			  | DRM_BRIDGE_OP_EDID;
 	pdata->bridge.type = panel ? DRM_MODE_CONNECTOR_eDP
 			   : DRM_MODE_CONNECTOR_DisplayPort;
 
