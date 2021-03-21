@@ -29,6 +29,7 @@
 #include <drm/drm_panel.h>
 #include <drm/drm_print.h>
 #include <drm/drm_probe_helper.h>
+#include <drm/drm_edid.h>
 
 #define SN_DEVICE_REV_REG			0x08
 #define SN_DPPLL_SRC_REG			0x0A
@@ -97,6 +98,7 @@
 #define  AUX_IRQ_STATUS_AUX_RPLY_TOUT		BIT(3)
 #define  AUX_IRQ_STATUS_AUX_SHORT		BIT(5)
 #define  AUX_IRQ_STATUS_NAT_I2C_FAIL		BIT(6)
+#define SN_EDID_I2C_ADDR_DEFAULT		0x50
 
 #define MIN_DSI_CLK_FREQ_MHZ	40
 
@@ -178,6 +180,8 @@ struct ti_sn65dsi86 {
 #endif
 
 	bool				no_hpd;
+
+	struct i2c_client		*i2c_edid;
 };
 
 static const struct regmap_range ti_sn65dsi86_volatile_ranges[] = {
@@ -405,13 +409,61 @@ static void ti_sn65dsi86_debugfs_init(struct ti_sn65dsi86 *pdata)
 	debugfs_create_file("status", 0600, debugfs, pdata, &status_fops);
 }
 
+static int ti_sn_get_edid_block(void *data, u8 *buf, unsigned int block,
+				  size_t len)
+{
+	struct ti_sn65dsi86 *pdata = data;
+	struct i2c_msg xfer[2];
+	uint8_t edid_buf[256];
+	uint8_t offset;
+	unsigned int i;
+	int ret;
+
+	if (len > 128)
+		return -EINVAL;
+
+	regmap_write(pdata->regmap, 0x60, 0xA1);
+
+	xfer[0].addr = pdata->i2c_edid->addr;
+	xfer[0].flags = 0;
+	xfer[0].len = 1;
+	xfer[0].buf = &offset;
+	xfer[1].addr = pdata->i2c_edid->addr;
+	xfer[1].flags = I2C_M_RD;
+	xfer[1].len = 64;
+	xfer[1].buf = edid_buf;
+
+	offset = 0;
+
+	for (i = 0; i < 4; ++i) {
+		ret = i2c_transfer(pdata->i2c_edid->adapter, xfer,
+				   ARRAY_SIZE(xfer));
+		if (ret < 0)
+			return ret;
+		else if (ret != 2)
+			return -EIO;
+
+		xfer[1].buf += 64;
+		offset += 64;
+	}
+
+	regmap_write(pdata->regmap, 0x60, 0xA0);
+
+	if (block % 2 == 0)
+		memcpy(buf, edid_buf, len);
+	else
+		memcpy(buf, edid_buf + 128, len);
+
+	return 0;
+}
+
 static struct edid *__ti_sn_bridge_get_edid(struct ti_sn65dsi86 *pdata,
 					    struct drm_connector *connector)
 {
 	struct edid *edid;
 
 	pm_runtime_get_sync(pdata->dev);
-	edid = drm_get_edid(connector, &pdata->aux.ddc);
+	edid = drm_do_get_edid(connector, ti_sn_get_edid_block, pdata);
 	pm_runtime_put_autosuspend(pdata->dev);
 
 	return edid;
@@ -1174,6 +1226,7 @@ static int ti_sn_bridge_probe(struct auxiliary_device *adev,
 {
 	struct ti_sn65dsi86 *pdata = dev_get_drvdata(adev->dev.parent);
 	struct device_node *np = pdata->dev->of_node;
+	struct i2c_client *client = to_i2c_client(pdata->dev);
 	int ret;
 
 	ret = drm_of_find_panel_or_bridge(np, 1, 0, &pdata->panel,
@@ -1199,6 +1252,13 @@ static int ti_sn_bridge_probe(struct auxiliary_device *adev,
 	ret = ti_sn_bridge_parse_dsi_host(pdata);
 	if (ret)
 		return ret;
+
+	pdata->i2c_edid = i2c_new_ancillary_device(client, "edid",
+						   SN_EDID_I2C_ADDR_DEFAULT);
+	if (IS_ERR(pdata->i2c_edid)) {
+		ret = PTR_ERR(pdata->i2c_edid);
+		DRM_ERROR("failed to get i2c edid\n");
+	}
 
 	pdata->aux.name = "ti-sn65dsi86-aux";
 	pdata->aux.dev = pdata->dev;
@@ -1232,6 +1292,8 @@ static void ti_sn_bridge_remove(struct auxiliary_device *adev)
 	kfree(pdata->edid);
 
 	drm_bridge_remove(&pdata->bridge);
+
+	i2c_unregister_device(pdata->i2c_edid);
 
 	of_node_put(pdata->host_node);
 }
