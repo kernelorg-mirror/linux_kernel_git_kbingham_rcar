@@ -832,10 +832,7 @@ static int rcar_mipi_dsi_probe(struct platform_device *pdev)
 	if (ret < 0)
 		return ret;
 
-	/* Initialize the DRM bridge. */
-	mipi_dsi->bridge.funcs = &rcar_mipi_dsi_bridge_ops;
-	mipi_dsi->bridge.of_node = pdev->dev.of_node;
-
+	/* Acquire resources. */
 	mem = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	mipi_dsi->mmio = devm_ioremap_resource(&pdev->dev, mem);
 	if (IS_ERR(mipi_dsi->mmio))
@@ -851,13 +848,16 @@ static int rcar_mipi_dsi_probe(struct platform_device *pdev)
 		return PTR_ERR(mipi_dsi->rstc);
 	}
 
-	/* Initialize the DST host. */
+	/* Initialize the DSI host. */
 	mipi_dsi->host.dev = dev;
 	mipi_dsi->host.ops = &rcar_mipi_dsi_host_ops;
 	ret = mipi_dsi_host_register(&mipi_dsi->host);
 	if (ret < 0)
 		return ret;
 
+	/* Initialize the DRM bridge. */
+	mipi_dsi->bridge.funcs = &rcar_mipi_dsi_bridge_ops;
+	mipi_dsi->bridge.of_node = pdev->dev.of_node;
 	drm_bridge_add(&mipi_dsi->bridge);
 
 	return 0;
