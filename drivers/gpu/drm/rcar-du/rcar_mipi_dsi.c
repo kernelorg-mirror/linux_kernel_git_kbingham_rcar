@@ -577,10 +577,7 @@ static void rcar_mipi_dsi_enable(struct drm_bridge *bridge)
 	if (ret < 0)
 		return;
 
-	ret = rcar_mipi_dsi_start_video(dsi);
-	if (ret < 0)
-		return;
-
+	rcar_mipi_dsi_start_video(dsi);
 }
 
 static enum drm_mode_status
