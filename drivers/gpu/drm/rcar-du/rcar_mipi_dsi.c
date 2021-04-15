@@ -49,14 +49,17 @@ struct rcar_mipi_dsi {
 	unsigned int lanes;
 };
 
-#define bridge_to_rcar_mipi_dsi(b) \
-	container_of(b, struct rcar_mipi_dsi, bridge)
+static inline struct rcar_mipi_dsi *
+bridge_to_rcar_mipi_dsi(struct drm_bridge *bridge)
+{
+	return container_of(bridge, struct rcar_mipi_dsi, bridge);
+}
 
-#define connector_to_rcar_mipi_dsi(c) \
-	container_of(c, struct rcar_mipi_dsi, connector)
-
-#define host_to_rcar_mipi_dsi(c) \
-	container_of(c, struct rcar_mipi_dsi, host)
+static inline struct rcar_mipi_dsi *
+host_to_rcar_mipi_dsi(struct mipi_dsi_host *host)
+{
+	return container_of(host, struct rcar_mipi_dsi, host);
+}
 
 static const u32 phtw[] = {
 	0x01020114, 0x01600115, /* General testing */
