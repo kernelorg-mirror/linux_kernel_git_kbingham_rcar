@@ -804,7 +804,6 @@ static int rcar_mipi_dsi_get_clocks(struct rcar_mipi_dsi *dsi)
 
 static int rcar_mipi_dsi_probe(struct platform_device *pdev)
 {
-	struct device *dev = &pdev->dev;
 	struct rcar_mipi_dsi *dsi;
 	struct resource *mem;
 	int ret;
@@ -815,7 +814,7 @@ static int rcar_mipi_dsi_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, dsi);
 
-	dsi->dev = dev;
+	dsi->dev = &pdev->dev;
 	dsi->info = of_device_get_match_data(&pdev->dev);
 
 	ret = rcar_mipi_dsi_parse_dt(dsi);
@@ -824,7 +823,7 @@ static int rcar_mipi_dsi_probe(struct platform_device *pdev)
 
 	/* Acquire resources. */
 	mem = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	dsi->mmio = devm_ioremap_resource(&pdev->dev, mem);
+	dsi->mmio = devm_ioremap_resource(dsi->dev, mem);
 	if (IS_ERR(dsi->mmio))
 		return PTR_ERR(dsi->mmio);
 
@@ -832,14 +831,14 @@ static int rcar_mipi_dsi_probe(struct platform_device *pdev)
 	if (ret < 0)
 		return ret;
 
-	dsi->rstc = devm_reset_control_get(&pdev->dev, NULL);
+	dsi->rstc = devm_reset_control_get(dsi->dev, NULL);
 	if (IS_ERR(dsi->rstc)) {
-		dev_err(&pdev->dev, "failed to get cpg reset\n");
+		dev_err(dsi->dev, "failed to get cpg reset\n");
 		return PTR_ERR(dsi->rstc);
 	}
 
 	/* Initialize the DSI host. */
-	dsi->host.dev = dev;
+	dsi->host.dev = dsi->dev;
 	dsi->host.ops = &rcar_mipi_dsi_host_ops;
 	ret = mipi_dsi_host_register(&dsi->host);
 	if (ret < 0)
@@ -847,7 +846,7 @@ static int rcar_mipi_dsi_probe(struct platform_device *pdev)
 
 	/* Initialize the DRM bridge. */
 	dsi->bridge.funcs = &rcar_mipi_dsi_bridge_ops;
-	dsi->bridge.of_node = pdev->dev.of_node;
+	dsi->bridge.of_node = dsi->dev->of_node;
 	drm_bridge_add(&dsi->bridge);
 
 	return 0;
