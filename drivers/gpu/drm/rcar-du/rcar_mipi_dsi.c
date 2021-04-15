@@ -678,40 +678,27 @@ static const struct mipi_dsi_host_ops rcar_mipi_dsi_host_ops = {
 
 static int rcar_mipi_dsi_parse_dt(struct rcar_mipi_dsi *dsi)
 {
-	struct device_node *local_output = NULL;
-	struct property *prop;
-	int ret = 0;
-	int len, num_lanes;
+	struct device_node *ep;
+	u32 data_lanes[4];
+	int ret;
 
-	local_output = of_graph_get_endpoint_by_regs(dsi->dev->of_node,
-						     1, 0);
-	if (!local_output) {
+	ep = of_graph_get_endpoint_by_regs(dsi->dev->of_node, 1, 0);
+	if (!ep) {
 		dev_dbg(dsi->dev, "unconnected port@1\n");
-		ret = -ENODEV;
-		goto done;
+		return -ENODEV;
 	}
 
-	/* Get lanes information */
-	prop = of_find_property(local_output, "data-lanes", &len);
-	if (!prop) {
-		dsi->num_data_lanes = 4;
-		dev_dbg(dsi->dev,
-			"failed to find data lane information, using default\n");
-		goto done;
+	ret = of_property_read_variable_u32_array(ep, "data-lanes", data_lanes,
+						  1, 4);
+	of_node_put(ep);
+
+	if (ret < 0) {
+		dev_err(dsi->dev, "missing or invalid data-lanes property\n");
+		return -ENODEV;
 	}
 
-	num_lanes = len / sizeof(u32);
-
-	if (num_lanes < 1 || num_lanes > 4) {
-		dev_err(dsi->dev, "data lanes definition is not correct\n");
-		return -EINVAL;
-	}
-
-	dsi->num_data_lanes = num_lanes;
-done:
-	of_node_put(local_output);
-
-	return ret;
+	dsi->num_data_lanes = ret;
+	return 0;
 }
 
 static struct clk *rcar_mipi_dsi_get_clock(struct rcar_mipi_dsi *dsi,
