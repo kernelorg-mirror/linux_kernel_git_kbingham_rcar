@@ -49,8 +49,22 @@ properties:
         description: Parallel input port
 
       port@1:
-        $ref: /schemas/graph.yaml#/properties/port
+        $ref: /schemas/graph.yaml#/$defs/port-base
+        unevaluatedProperties: false
         description: DSI/CSI-2 output port
+
+        properties:
+          endpoint:
+            $ref: /schemas/media/video-interfaces.yaml#
+            unevaluatedProperties: false
+
+            properties:
+              data-lanes:
+                minItems: 1
+                maxItems: 4
+
+            required:
+              - data-lanes
 
     required:
       - port@0
@@ -95,6 +109,7 @@ examples:
             port@1 {
                 reg = <1>;
                 dsi0_out: endpoint {
+                    data-lanes = <1 2>;
                     remote-endpoint = <&sn65dsi86_in>;
                 };
             };
