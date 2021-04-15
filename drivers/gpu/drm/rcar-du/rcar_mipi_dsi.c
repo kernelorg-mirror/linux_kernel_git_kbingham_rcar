@@ -20,6 +20,7 @@
 #include <drm/drm_atomic_helper.h>
 #include <drm/drm_bridge.h>
 #include <drm/drm_mipi_dsi.h>
+#include <drm/drm_of.h>
 #include <drm/drm_panel.h>
 #include <drm/drm_probe_helper.h>
 
@@ -678,11 +679,7 @@ static const struct mipi_dsi_host_ops rcar_mipi_dsi_host_ops = {
 static int rcar_mipi_dsi_parse_dt(struct rcar_mipi_dsi *dsi)
 {
 	struct device_node *local_output = NULL;
-	struct device_node *remote_input = NULL;
-	struct device_node *remote = NULL;
-	struct device_node *node;
 	struct property *prop;
-	bool is_bridge = false;
 	int ret = 0;
 	int len, num_lanes;
 
@@ -691,48 +688,6 @@ static int rcar_mipi_dsi_parse_dt(struct rcar_mipi_dsi *dsi)
 	if (!local_output) {
 		dev_dbg(dsi->dev, "unconnected port@1\n");
 		ret = -ENODEV;
-		goto done;
-	}
-
-	/*
-	 * Locate the connected entity and
-	 * infer its type from the number of endpoints.
-	 */
-	remote = of_graph_get_remote_port_parent(local_output);
-	if (!remote) {
-		dev_dbg(dsi->dev, "unconnected endpoint %pOF\n", local_output);
-		ret = -ENODEV;
-		goto done;
-	}
-
-	if (!of_device_is_available(remote)) {
-		dev_dbg(dsi->dev, "connected entity %pOF is disabled\n",
-			remote);
-		ret = -ENODEV;
-		goto done;
-	}
-
-	remote_input = of_graph_get_remote_endpoint(local_output);
-
-	for_each_endpoint_of_node(remote, node) {
-		if (node != remote_input) {
-			/*
-			 * The endpoint which is not input node must be bridge
-			 */
-			is_bridge = true;
-			of_node_put(node);
-			break;
-		}
-	}
-
-	if (!is_bridge) {
-		ret = -ENODEV;
-		goto done;
-	}
-
-	dsi->next_bridge = of_drm_find_bridge(remote);
-	if (!dsi->next_bridge) {
-		ret = -EPROBE_DEFER;
 		goto done;
 	}
 
@@ -755,8 +710,6 @@ static int rcar_mipi_dsi_parse_dt(struct rcar_mipi_dsi *dsi)
 	dsi->num_data_lanes = num_lanes;
 done:
 	of_node_put(local_output);
-	of_node_put(remote_input);
-	of_node_put(remote);
 
 	return ret;
 }
@@ -805,6 +758,7 @@ static int rcar_mipi_dsi_get_clocks(struct rcar_mipi_dsi *dsi)
 static int rcar_mipi_dsi_probe(struct platform_device *pdev)
 {
 	struct rcar_mipi_dsi *dsi;
+	struct drm_panel *panel;
 	struct resource *mem;
 	int ret;
 
@@ -835,6 +789,21 @@ static int rcar_mipi_dsi_probe(struct platform_device *pdev)
 	if (IS_ERR(dsi->rstc)) {
 		dev_err(dsi->dev, "failed to get cpg reset\n");
 		return PTR_ERR(dsi->rstc);
+	}
+
+	ret = drm_of_find_panel_or_bridge(dsi->dev->of_node, 1, 0, &panel,
+					  &dsi->next_bridge);
+	if (ret) {
+		dev_err_probe(dsi->dev, ret, "could not find next bridge\n");
+		return ret;
+	}
+
+	if (!dsi->next_bridge) {
+		dsi->next_bridge = devm_drm_panel_bridge_add(dsi->dev, panel);
+		if (IS_ERR(dsi->next_bridge)) {
+			dev_err(dsi->dev, "failed to create panel bridge\n");
+			return PTR_ERR(dsi->next_bridge);
+		}
 	}
 
 	/* Initialize the DSI host. */
