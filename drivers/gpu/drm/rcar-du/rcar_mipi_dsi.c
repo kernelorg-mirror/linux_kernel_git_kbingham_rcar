@@ -8,6 +8,7 @@
 #include <linux/clk.h>
 #include <linux/delay.h>
 #include <linux/io.h>
+#include <linux/iopoll.h>
 #include <linux/module.h>
 #include <linux/of.h>
 #include <linux/of_device.h>
@@ -145,25 +146,21 @@ static void rcar_mipi_dsi_set(struct rcar_mipi_dsi *dsi, u32 reg, u32 set)
 
 static int rcar_mipi_dsi_phtw_test(struct rcar_mipi_dsi *dsi, u32 phtw)
 {
-	unsigned int timeout;
 	u32 status;
+	int ret;
 
 	rcar_mipi_dsi_write(dsi, PHTW, phtw);
 
-	for (timeout = 10; timeout > 0; --timeout) {
-		status = rcar_mipi_dsi_read(dsi, PHTW);
-		if (!(status & PHTW_DWEN) && !(status & PHTW_CWEN))
-			break;
-
-		usleep_range(1000, 2000);
+	ret = read_poll_timeout(rcar_mipi_dsi_read, status,
+			        !(status & (PHTW_DWEN | PHTW_CWEN)),
+				2000, 10000, false, dsi, PHTW);
+	if (ret < 0) {
+		dev_err(dsi->dev, "PHY test interface write timeout (0x%08x)\n",
+			phtw);
+		return ret;
 	}
 
-	if (!timeout) {
-		dev_err(dsi->dev, "failed to test phtw with data %x\n", phtw);
-		return -ETIMEDOUT;
-	}
-
-	return timeout;
+	return ret;
 }
 
 /* -----------------------------------------------------------------------------
@@ -458,85 +455,60 @@ static int rcar_mipi_dsi_start_hs_clock(struct rcar_mipi_dsi *dsi)
 	 * In HW manual, we need to check TxDDRClkHS-Q Stable? but it dont
 	 * write how to check. So we skip this check in this patch
 	 */
-	unsigned int timeout;
 	u32 status;
+	int ret;
 
-	/* Start HS clock */
+	/* Start HS clock. */
 	rcar_mipi_dsi_set(dsi, PPICLCR, PPICLCR_TXREQHS);
 
-	for (timeout = 10; timeout > 0; --timeout) {
-		status = rcar_mipi_dsi_read(dsi, PPICLSR);
-
-		if (status & PPICLSR_TOHS) {
-			rcar_mipi_dsi_set(dsi, PPICLSCR, PPICLSCR_TOHS);
-			break;
-		}
-
-		usleep_range(1000, 2000);
-	}
-
-	if (!timeout) {
+	ret = read_poll_timeout(rcar_mipi_dsi_read, status,
+				status & PPICLSR_TOHS,
+				2000, 10000, false, dsi, PPICLSR);
+	if (ret < 0) {
 		dev_err(dsi->dev, "failed to enable HS clock\n");
-		return -ETIMEDOUT;
+		return ret;
 	}
 
-	dev_dbg(dsi->dev, "Start High Speed Clock");
+	rcar_mipi_dsi_set(dsi, PPICLSCR, PPICLSCR_TOHS);
 
 	return 0;
 }
 
 static int rcar_mipi_dsi_start_video(struct rcar_mipi_dsi *dsi)
 {
-	unsigned int timeout;
 	u32 status;
+	int ret;
 
-	/* Check status of Tranmission */
-	for (timeout = 10; timeout > 0; --timeout) {
-		status = rcar_mipi_dsi_read(dsi, LINKSR);
-		if (!(status & LINKSR_LPBUSY) && !(status & LINKSR_HSBUSY)) {
-			rcar_mipi_dsi_clr(dsi, TXVMCR, TXVMCR_VFCLR);
-			break;
-		}
-
-		usleep_range(1000, 2000);
+	/* Wait for the link to be ready. */
+	ret = read_poll_timeout(rcar_mipi_dsi_read, status,
+				!(status & (LINKSR_LPBUSY | LINKSR_HSBUSY)),
+				2000, 10000, false, dsi, LINKSR);
+	if (ret < 0) {
+		dev_err(dsi->dev, "Link failed to become ready\n");
+		return ret;
 	}
 
-	if (!timeout) {
-		dev_err(dsi->dev, "Failed to enable Video clock\n");
-		return -ETIMEDOUT;
+	/* De-assert video FIFO clear. */
+	rcar_mipi_dsi_clr(dsi, TXVMCR, TXVMCR_VFCLR);
+
+	ret = read_poll_timeout(rcar_mipi_dsi_read, status,
+				status & TXVMSR_VFRDY,
+				2000, 10000, false, dsi, TXVMSR);
+	if (ret < 0) {
+		dev_err(dsi->dev, "Failed to de-assert video FIFO clear\n");
+		return ret;
 	}
 
-	/* Check Clear Video mode FIFO */
-	for (timeout = 10; timeout > 0; --timeout) {
-		status = rcar_mipi_dsi_read(dsi, TXVMSR);
-		if (status & TXVMSR_VFRDY) {
-			rcar_mipi_dsi_set(dsi, TXVMCR, TXVMCR_EN_VIDEO);
-			break;
-		}
+	/* Enable transmission in video mode. */
+	rcar_mipi_dsi_set(dsi, TXVMCR, TXVMCR_EN_VIDEO);
 
-		usleep_range(1000, 2000);
+	ret = read_poll_timeout(rcar_mipi_dsi_read, status,
+				status & TXVMSR_RDY,
+				2000, 10000, false, dsi, TXVMSR);
+	if (ret < 0) {
+		dev_err(dsi->dev, "Failed to enable video transmission\n");
+		return ret;
 	}
-
-	if (!timeout) {
-		dev_err(dsi->dev, "Failed to enable Video clock\n");
-		return -ETIMEDOUT;
-	}
-
-	/* Check Video transmission */
-	for (timeout = 10; timeout > 0; --timeout) {
-		status = rcar_mipi_dsi_read(dsi, TXVMSR);
-		if (status & TXVMSR_RDY)
-			break;
-
-		usleep_range(1000, 2000);
-	}
-
-	if (!timeout) {
-		dev_err(dsi->dev, "Failed to enable Video clock\n");
-		return -ETIMEDOUT;
-	}
-
-	dev_dbg(dsi->dev, "Start video transferring");
 
 	return 0;
 }
