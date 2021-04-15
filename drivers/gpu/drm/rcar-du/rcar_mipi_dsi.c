@@ -618,13 +618,19 @@ int rcar_mipi_dsi_clk_enable(struct drm_bridge *bridge)
 
 	ret = clk_prepare_enable(dsi->clocks.dsi);
 	if (ret < 0)
-		return ret;
+		goto err_clock_mod;
 
 	ret = rcar_mipi_dsi_startup(dsi);
 	if (ret < 0)
-		return ret;
+		goto err_clock_dsi;
 
 	return 0;
+
+err_clock_dsi:
+	clk_disable_unprepare(dsi->clocks.dsi);
+err_clock_mod:
+	clk_disable_unprepare(dsi->clocks.mod);
+	return ret;
 }
 EXPORT_SYMBOL_GPL(rcar_mipi_dsi_clk_enable);
 
@@ -634,9 +640,7 @@ void rcar_mipi_dsi_clk_disable(struct drm_bridge *bridge)
 
 	rcar_mipi_dsi_shutdown(dsi);
 
-	/* Disable DSI clock and reset HW */
 	clk_disable_unprepare(dsi->clocks.dsi);
-
 	clk_disable_unprepare(dsi->clocks.mod);
 
 	reset_control_assert(dsi->rstc);
