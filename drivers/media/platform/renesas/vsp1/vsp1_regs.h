@@ -70,6 +70,24 @@
 #define VI6_WPF_LINE_COUNT(n)		(0x0084 + (n) * 4)
 #define VI6_WPF_LINE_COUNT_MASK		(0x1fffff << 0)
 
+/* Safety Mechanism */
+#define VI6_WPF0_WDT			0x00c4
+#define VI6_WPF0_WDT_WDTEN		BIT(16)
+#define VI6_WPF0_TIMER_CYC_MASK		(0xffff << 0)
+
+#define VI6_WPF0_FRCNT			0x00d4
+#define VI6_WPF0_FRCNT_MASK		(0xfff << 0)
+
+#define VI6_ECM0_IRQ_ENB		0x00dc
+#define VI6_ECM0_IRQ_ENB_W0ALME		BIT(24)
+#define VI6_ECM0_IRQ_ENB_RRSP0E		BIT(0)
+
+#define VI6_ECM0_IRQ_STA		0x00e0
+#define VI6_ECM0_IRQ_STA_W0ALM		BIT(24)
+#define VI6_ECM0_IRQ_STA_RRSP0		BIT(0)
+
+#define VI6_CTL_ERRINJ			0x00e8
+
 /* -----------------------------------------------------------------------------
  * Display List Control Registers
  */
