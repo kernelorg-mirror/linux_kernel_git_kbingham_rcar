@@ -739,15 +739,11 @@ static void rcar_du_crtc_atomic_enable(struct drm_crtc *crtc,
 	}
 
 	/*
-	 * On V3U the dot clock is provided by the MIPI DSI encoder which is attached
-	 * to DU. So, the MIPI DSI module should be enable before starting DU.
+	 * On V3U the dot clock is provided by the MIPI DSI encoder which is
+	 * attached to DU. So, the MIPI DSI module should be enable before starting DU.
 	 */
 	if (rcdu->info->dsi_clk_mask & BIT(rcrtc->index)) {
-		struct rcar_du_encoder *encoder =
-				rcdu->encoders[RCAR_DU_OUTPUT_DSI0 + rcrtc->index];
-		struct drm_bridge *bridge;
-
-		bridge = drm_bridge_chain_get_first_bridge(&encoder->base);
+		struct drm_bridge *bridge = rcdu->dsi[rcrtc->index];
 		rcar_mipi_dsi_clk_enable(bridge);
 	}
 
@@ -785,14 +781,11 @@ static void rcar_du_crtc_atomic_disable(struct drm_crtc *crtc,
 	}
 
 	if (rcdu->info->dsi_clk_mask & BIT(rcrtc->index)) {
-		struct rcar_du_encoder *encoder =
-				rcdu->encoders[RCAR_DU_OUTPUT_DSI0 + rcrtc->index];
-		struct drm_bridge *bridge;
+		struct drm_bridge *bridge = rcdu->dsi[rcrtc->index];
 
 		/*
 		 * Disable the MIPI DSI clock output
 		 */
-		bridge = drm_bridge_chain_get_first_bridge(&encoder->base);
 		rcar_mipi_dsi_clk_disable(bridge);
 	}
 
