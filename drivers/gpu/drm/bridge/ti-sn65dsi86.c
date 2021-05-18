@@ -742,9 +742,11 @@ static int ti_sn_bridge_attach(struct drm_bridge *bridge,
 	}
 	pdata->dsi = dsi;
 
-	/* Attach the next bridge */
+	/* Attach the next bridge. If a connector was required, we created it
+	 * so the next bridge is not required to do so.
+	 */
 	ret = drm_bridge_attach(bridge->encoder, pdata->next_bridge,
-				&pdata->bridge, flags);
+				&pdata->bridge, flags | DRM_BRIDGE_ATTACH_NO_CONNECTOR);
 	if (ret < 0) {
 		DRM_ERROR("failed to attach next bridge\n");
 		goto err_dsi_detach;
