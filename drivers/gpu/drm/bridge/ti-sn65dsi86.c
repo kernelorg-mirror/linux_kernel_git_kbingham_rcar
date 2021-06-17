@@ -1232,7 +1232,8 @@ static int ti_sn_bridge_probe(struct auxiliary_device *adev,
 	ret = drm_of_find_panel_or_bridge(np, 1, 0, &pdata->panel,
 					  &pdata->next_bridge);
 	if (ret) {
-		DRM_ERROR("could not find any panel node\n");
+		if (ret != -EPROBE_DEFER)
+			DRM_ERROR("could not find any panel node\n");
 		return ret;
 	}
 
