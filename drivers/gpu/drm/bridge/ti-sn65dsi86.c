@@ -4,6 +4,8 @@
  * datasheet: https://www.ti.com/lit/ds/symlink/sn65dsi86.pdf
  */
 
+#define DEBUG
+
 #include <linux/atomic.h>
 #include <linux/auxiliary_bus.h>
 #include <linux/bitfield.h>
