@@ -150,6 +150,8 @@
  *                bitmap so we can do atomic ops on it without an extra
  *                lock so concurrent users of our 4 GPIOs don't stomp on
  *                each other's read-modify-write.
+ * @no_hpd:       Whether hotplug detect is enabled or not.
+ * @i2c_edid:     The ancillary I2C device for parsing the EDID.
  */
 struct ti_sn65dsi86 {
 	struct auxiliary_device		bridge_aux;
