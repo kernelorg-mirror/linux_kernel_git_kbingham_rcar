@@ -5,6 +5,8 @@
  * Copyright (C) 2020 Renesas Electronics Corporation
  */
 
+#include "rcar_mipi_dsi.h"
+
 #include <linux/clk.h>
 #include <linux/delay.h>
 #include <linux/io.h>
