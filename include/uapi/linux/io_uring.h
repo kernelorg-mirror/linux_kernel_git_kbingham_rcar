@@ -44,6 +44,8 @@ struct io_uring_sqe {
 		__u32		splice_flags;
 		__u32		rename_flags;
 		__u32		unlink_flags;
+		__u32		hardlink_flags;
+		__u32		mknod_dev;
 	};
 	__u64	user_data;	/* data to be passed back at completion time */
 	union {
@@ -137,6 +139,10 @@ enum {
 	IORING_OP_SHUTDOWN,
 	IORING_OP_RENAMEAT,
 	IORING_OP_UNLINKAT,
+	IORING_OP_MKDIRAT,
+	IORING_OP_SYMLINKAT,
+	IORING_OP_LINKAT,
+	IORING_OP_MKNODAT,
 
 	/* this goes last, obviously */
 	IORING_OP_LAST,
@@ -305,6 +311,10 @@ enum {
 	IORING_REGISTER_FILES_UPDATE2		= 14,
 	IORING_REGISTER_BUFFERS2		= 15,
 	IORING_REGISTER_BUFFERS_UPDATE		= 16,
+
+	/* set/clear io-wq thread affinities */
+	IORING_REGISTER_IOWQ_AFF		= 17,
+	IORING_UNREGISTER_IOWQ_AFF		= 18,
 
 	/* this goes last */
 	IORING_REGISTER_LAST
