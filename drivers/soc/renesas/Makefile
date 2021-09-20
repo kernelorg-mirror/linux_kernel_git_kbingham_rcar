@@ -2,6 +2,9 @@
 # Generic, must be first because of soc_device_register()
 obj-$(CONFIG_SOC_RENESAS)	+= renesas-soc.o
 
+# R-Car IRQC debug handling
+obj-$(CONFIG_ARCH_RENESAS)	+= rcar-irqc.o
+
 # SoC
 obj-$(CONFIG_SYSC_R8A7742)	+= r8a7742-sysc.o
 obj-$(CONFIG_SYSC_R8A7743)	+= r8a7743-sysc.o
