@@ -26,16 +26,11 @@
 		compatible = "gpio-keys";
 
 		btn1 {
-			pinctrl-0 = <&irq2_pins>;
-			pinctrl-names = "default";
-
 			debounce-interval = <50>;
 			label = "button1";
 			linux,code = <KEY_1>;
-			interrupt-parent = <&intc_ex>;
-			interrupts = <2 IRQ_TYPE_LEVEL_LOW>;
 
-			//gpios = <&gpio1 26 GPIO_ACTIVE_LOW>;
+			gpios = <&gpio1 26 GPIO_ACTIVE_LOW>;
 		};
 	};
 };
