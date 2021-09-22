@@ -10,12 +10,33 @@
 #include "r8a779a0-falcon-csi-dsi.dtsi"
 #include "r8a779a0-falcon-ethernet.dtsi"
 
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/gpio-keys.h>
+#include <dt-bindings/input/input.h>
+
 / {
 	model = "Renesas Falcon CPU and Breakout boards based on r8a779a0";
 	compatible = "renesas,falcon-breakout", "renesas,falcon-cpu", "renesas,r8a779a0";
 
 	aliases {
 		ethernet0 = &avb0;
+	};
+
+	gpio_keys {
+		compatible = "gpio-keys";
+
+		btn1 {
+			pinctrl-0 = <&irq2_pins>;
+			pinctrl-names = "default";
+
+			debounce-interval = <50>;
+			label = "button1";
+			linux,code = <KEY_1>;
+			interrupt-parent = <&intc_ex>;
+			interrupts = <2 IRQ_TYPE_LEVEL_LOW>;
+
+			//gpios = <&gpio1 26 GPIO_ACTIVE_LOW>;
+		};
 	};
 };
 
@@ -47,6 +68,14 @@
 };
 
 &pfc {
+	// Intc_ex testing
+	irq2_pins: irq2 {
+		groups = "intc_ex_irq2";
+		function = "intc_ex";
+
+		bias-pull-up;
+	};
+
 	avb0_pins: avb0 {
 		mux {
 			groups = "avb0_link", "avb0_mdio", "avb0_rgmii",
