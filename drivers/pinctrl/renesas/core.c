@@ -228,7 +228,7 @@ static void sh_pfc_write_config_reg(struct sh_pfc *pfc,
 
 	sh_pfc_config_reg_helper(pfc, crp, field, &mapped_reg, &mask, &pos);
 
-	dev_err(pfc->dev, "KB: write_reg addr = %x, value = 0x%x, field = %u, "
+	dev_dbg(pfc->dev, "write_reg addr = %x, value = 0x%x, field = %u, "
 		"r_width = %u, f_width = %u\n",
 		crp->reg, value, field, crp->reg_width, hweight32(mask));
 
