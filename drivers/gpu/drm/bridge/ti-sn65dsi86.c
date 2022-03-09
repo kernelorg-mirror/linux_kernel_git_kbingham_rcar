@@ -706,19 +706,18 @@ static int ti_sn_bridge_attach(struct drm_bridge *bridge,
 		return ret;
 	}
 
-	if (!(flags & DRM_BRIDGE_ATTACH_NO_CONNECTOR)) {
-		ret = ti_sn_bridge_connector_init(pdata);
-		if (ret < 0)
-			goto err_conn_init;
-		/* We never want the next bridge to *also* create a connector: */
-		flags |= DRM_BRIDGE_ATTACH_NO_CONNECTOR;
-	}
-
-	/* Attach the next bridge */
+	/*
+	 * Attach the next bridge We never want the next bridge to *also* create
+	 * a connector:
+	 */
 	ret = drm_bridge_attach(bridge->encoder, pdata->next_bridge,
-				&pdata->bridge, flags);
+				&pdata->bridge,
+				flags | DRM_BRIDGE_ATTACH_NO_CONNECTOR);
 	if (ret < 0)
 		goto err_initted_aux;
+
+	if (flags & DRM_BRIDGE_ATTACH_NO_CONNECTOR)
+		return 0;
 
 	pdata->connector = drm_bridge_connector_init(pdata->bridge.dev,
 						     pdata->bridge.encoder);
@@ -733,7 +732,7 @@ static int ti_sn_bridge_attach(struct drm_bridge *bridge,
 
 err_initted_aux:
 	if (!(flags & DRM_BRIDGE_ATTACH_NO_CONNECTOR))
-		drm_connector_cleanup(&pdata->connector);
+		drm_connector_cleanup(pdata->connector);
 err_conn_init:
 	drm_dp_aux_unregister(&pdata->aux);
 	return ret;
