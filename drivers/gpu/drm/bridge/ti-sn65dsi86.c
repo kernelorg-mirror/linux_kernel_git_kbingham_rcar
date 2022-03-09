@@ -1119,9 +1119,9 @@ static const struct drm_bridge_funcs ti_sn_bridge_funcs = {
 	.detach = ti_sn_bridge_detach,
 	.mode_valid = ti_sn_bridge_mode_valid,
 	.atomic_pre_enable = ti_sn_bridge_atomic_pre_enable,
-	.atomic_enable = ti_sn_atomic_bridge_enable,
-	.atomic_disable = ti_sn_atomic_bridge_disable,
-	.atomic_post_disable = ti_sn_bridge_post_disable,
+	.atomic_enable = ti_sn_bridge_atomic_enable,
+	.atomic_disable = ti_sn_bridge_atomic_disable,
+	.atomic_post_disable = ti_sn_bridge_atomic_post_disable,
 	DRM_BRIDGE_STATE_OPS,
 };
 
