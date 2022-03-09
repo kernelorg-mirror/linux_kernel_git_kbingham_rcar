@@ -3647,6 +3647,8 @@ drm_atomic_helper_bridge_dsi_input_bus_fmt(struct drm_bridge *bridge,
 
 	*num_input_fmts = 0;
 
+	#define MAX_INPUT_SEL_FORMATS 1
+
 	input_fmts = kcalloc(MAX_INPUT_SEL_FORMATS, sizeof(*input_fmts), GFP_KERNEL);
 	if (!input_fmts)
 		return NULL;
