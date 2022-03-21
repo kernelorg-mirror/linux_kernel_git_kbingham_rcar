@@ -811,8 +811,12 @@ static void ti_sn_bridge_set_dsi_rate(struct ti_sn65dsi86 *pdata)
 	regmap_write(pdata->regmap, SN_DSIA_CLK_FREQ_REG, val);
 }
 
-static unsigned int ti_sn_bridge_get_bpp(struct drm_bridge_state *bridge_state)
+static unsigned int ti_sn_bridge_get_bpp(struct drm_bridge *bridge,
+					 struct drm_bridge_state *old_bridge_state)
 {
+	struct drm_atomic_state *state = old_bridge_state->base.state;
+	struct drm_bridge_state *bridge_state = drm_atomic_get_new_bridge_state(state, bridge);
+
 	int bpc = media_bus_format_to_bpc(bridge_state->output_bus_cfg.format);
 
 	if (bpc <= 6)
@@ -831,7 +835,7 @@ static const unsigned int ti_sn_bridge_dp_rate_lut[] = {
 };
 
 static int ti_sn_bridge_calc_min_dp_rate_idx(struct ti_sn65dsi86 *pdata,
-					     struct drm_bridge_state *bridge_state)
+					     struct drm_bridge_state *old_bridge_state)
 {
 	unsigned int bit_rate_khz, dp_rate_mhz;
 	unsigned int i;
@@ -839,7 +843,7 @@ static int ti_sn_bridge_calc_min_dp_rate_idx(struct ti_sn65dsi86 *pdata,
 		&pdata->bridge.encoder->crtc->state->adjusted_mode;
 
 	/* Calculate minimum bit rate based on our pixel clock. */
-	bit_rate_khz = mode->clock * ti_sn_bridge_get_bpp(bridge_state);
+	bit_rate_khz = mode->clock * ti_sn_bridge_get_bpp(&pdata->bridge, old_bridge_state);
 
 	/* Calculate minimum DP data rate, taking 80% as per DP spec */
 	dp_rate_mhz = DIV_ROUND_UP(bit_rate_khz * DP_CLK_FUDGE_NUM,
@@ -1095,7 +1099,7 @@ static void ti_sn_bridge_atomic_enable(struct drm_bridge *bridge,
 				   DP_ALTERNATE_SCRAMBLER_RESET_ENABLE);
 
 	/* Set the DP output format (18 bpp or 24 bpp) */
-	val = (ti_sn_bridge_get_bpp(old_bridge_state) == 18) ? BPP_18_RGB : 0;
+	val = (ti_sn_bridge_get_bpp(bridge, old_bridge_state) == 18) ? BPP_18_RGB : 0;
 	regmap_update_bits(pdata->regmap, SN_DATA_FORMAT_REG, BPP_18_RGB, val);
 
 	/* DP lane config */
