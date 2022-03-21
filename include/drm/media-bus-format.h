@@ -46,6 +46,7 @@ static inline int media_bus_format_to_bpc(u32 bus_format)
 
 	default:
 		WARN(1, "Unknown MEDIA_BUS format %d\n", bus_format);
+		pr_err("***** KB ***************\n");
 		return -EINVAL;
 	}
 }

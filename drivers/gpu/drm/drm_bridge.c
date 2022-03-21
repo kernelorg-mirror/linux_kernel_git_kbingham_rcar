@@ -863,10 +863,14 @@ drm_atomic_bridge_chain_select_bus_fmts(struct drm_bridge *bridge,
 	u32 *out_bus_fmts;
 	int ret = 0;
 
+	pr_err("KB: drm_atomic_bridge_chain_select_bus_fmts\n");
+
 	last_bridge = list_last_entry(&encoder->bridge_chain,
 				      struct drm_bridge, chain_node);
 	last_bridge_state = drm_atomic_get_new_bridge_state(crtc_state->state,
 							    last_bridge);
+
+	dev_err(last_bridge->dev->dev, "I'm the last bridge ... but who am I\n");
 
 	if (last_bridge->funcs->atomic_get_output_bus_fmts) {
 		const struct drm_bridge_funcs *funcs = last_bridge->funcs;
@@ -893,11 +897,16 @@ drm_atomic_bridge_chain_select_bus_fmts(struct drm_bridge *bridge,
 		if (!out_bus_fmts)
 			return -ENOMEM;
 
+		pr_err("conn->display_info.num_bus_formats %d conn->display_info.bus_formats %p\n",
+			conn->display_info.num_bus_formats, conn->display_info.bus_formats);
+
 		if (conn->display_info.num_bus_formats &&
 		    conn->display_info.bus_formats)
 			out_bus_fmts[0] = conn->display_info.bus_formats[0];
-		else
+		else {
+			pr_err("KB: Setting MEDIA_BUS_FMT_FIXED\n");
 			out_bus_fmts[0] = MEDIA_BUS_FMT_FIXED;
+		}
 	}
 
 	for (i = 0; i < num_out_bus_fmts; i++) {

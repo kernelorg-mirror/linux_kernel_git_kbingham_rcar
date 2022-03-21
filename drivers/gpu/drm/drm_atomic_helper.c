@@ -3653,6 +3653,9 @@ drm_atomic_helper_bridge_dsi_input_bus_fmt(struct drm_bridge *bridge,
 	if (!input_fmts)
 		return NULL;
 
+
+	pr_err("KB: Setting MEDIA_BUS_FMT_RGB888_1X24\n");
+
 	/* This is the DSI-end bus format */
 	input_fmts[0] = MEDIA_BUS_FMT_RGB888_1X24;
 	*num_input_fmts = 1;

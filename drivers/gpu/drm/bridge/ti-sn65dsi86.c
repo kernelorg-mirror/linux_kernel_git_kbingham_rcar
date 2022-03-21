@@ -819,6 +819,8 @@ static unsigned int ti_sn_bridge_get_bpp(struct drm_bridge *bridge,
 
 	int bpc = media_bus_format_to_bpc(bridge_state->output_bus_cfg.format);
 
+	pr_err(": Using format %d\n", bridge_state->output_bus_cfg.format);
+
 	if (bpc <= 6)
 		return 18;
 	else
