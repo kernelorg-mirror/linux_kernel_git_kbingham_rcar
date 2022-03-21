@@ -1221,6 +1221,8 @@ static const struct drm_bridge_funcs ti_sn_bridge_funcs = {
 	.atomic_enable = ti_sn_bridge_atomic_enable,
 	.atomic_disable = ti_sn_bridge_atomic_disable,
 	.atomic_post_disable = ti_sn_bridge_atomic_post_disable,
+	.atomic_get_input_bus_fmts = drm_atomic_helper_bridge_dsi_input_bus_fmt,
+
 	DRM_BRIDGE_STATE_OPS,
 };
 
