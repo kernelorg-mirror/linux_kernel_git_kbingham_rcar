@@ -710,6 +710,8 @@ static int ti_sn_attach_host(struct ti_sn65dsi86 *pdata)
 	dsi->format = MIPI_DSI_FMT_RGB888;
 	dsi->mode_flags = MIPI_DSI_MODE_VIDEO;
 
+	pr_err("KB: *********** ~SETTING dsi->format = MIPI_DSI_FMT_RGB888 \n");
+
 	/* check if continuous dsi clock is required or not */
 	pm_runtime_get_sync(dev);
 	regmap_read(pdata->regmap, SN_DPPLL_SRC_REG, &val);
