@@ -1361,20 +1361,14 @@ static int ti_sn_bridge_probe(struct auxiliary_device *adev,
 	if (!pdata->no_hpd && pdata->irq > 0) {
 		ret = devm_request_threaded_irq(pdata->dev, pdata->irq, NULL,
 						ti_sn65dsi86_irq_handler,
-						IRQF_ONESHOT, "sn65dsi86-irq",
-						pdata);
+						IRQF_ONESHOT | IRQF_NO_AUTOEN,
+						"sn65dsi86-irq", pdata);
 		if (ret)
 			return dev_err_probe(pdata->dev, ret,
 					     "Failed to register DP interrupt\n");
 
 		/* Enable IRQ based HPD */
 		pdata->bridge.ops |= DRM_BRIDGE_OP_HPD;
-
-		/*
-		 * Keep the IRQ disabled initially. It will only be enabled when
-		 * requested through ti_sn_bridge_hpd_enable().
-		 */
-		disable_irq(pdata->irq);
 	}
 
 	drm_bridge_add(&pdata->bridge);
